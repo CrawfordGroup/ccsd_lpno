@@ -25,13 +25,17 @@ symmetry c1
 """)
 
 psi4.set_options({'basis': 'STO-3g', 'scf_type': 'pk', 'mp2_type': 'conv',
-    'freeze_core': 'false', 'e_convergence': 1e-10, 'd_convergence':1e-10, 'save_jk': 'true'})
+                  'freeze_core': 'false', 'e_convergence': 1e-10,
+                  'd_convergence': 1e-10, 'save_jk': 'true'})
 
 # Set for CCSD
 E_conv = 1e-6
 maxiter = 30
 print_amps = False
 compare_psi4 = False
+
+# Set for LPNO
+e_cut = 1e-6
 
 # N dimensional dot
 # Like a mini DPD library
@@ -145,7 +149,7 @@ mints = psi4.core.MintsHelper(wfn.basisset())
 
 H = np.asarray(mints.ao_kinetic()) + np.asarray(mints.ao_potential())
 
-F = H + 2*J - K
+F = H + 2 * J - K
 
 # Make spin-orbital MO integrals
 MO = np.asarray(mints.mo_spin_eri(C, C))
@@ -178,25 +182,40 @@ t_ia = np.zeros((no_occ, no_vir))
 
 # init T2s
 d_ia = eps_occ.reshape(-1, 1) - eps_vir
-d_ijab =  eps_occ.reshape(-1, 1, 1, 1) + eps_occ.reshape(-1, 1, 1) - eps_vir.reshape(-1,1) - eps_vir
-t_ijab = MO[:no_occ, :no_occ, no_occ:, no_occ:] / d_ijab 
+d_ijab = eps_occ.reshape(-1, 1, 1, 1) + eps_occ.reshape(-1, 1, 1) - eps_vir.reshape(-1, 1) - eps_vir
+t_ijab = MO[:no_occ, :no_occ, no_occ:, no_occ:] / d_ijab
 
-#print('D_ia\'s : \n {} \n'.format(d_ia))
-#print('Initial T2s: \n {}\n'.format(t_ijab))
+# print('D_ia\'s : \n {} \n'.format(d_ia))
+# print('Initial T2s: \n {}\n'.format(t_ijab))
 
 # Initialize PNOs
-    # Identify weak pairs using MP2 pair corr energy
 
-    # Create Tij and Ttij
+# Identify weak pairs using MP2 pair corr energy
+e_ij = 0.5 * np.einsum('ijab,ijab->ij', MO[:no_occ, :no_occ, no_occ:, no_occ:], t_ijab)
+mp2_e  = 0.25 * np.einsum('ijab,ijab->', MO[:no_occ, :no_occ, no_occ:, no_occ:], t_ijab)
+print('MP2 correlation energy: {}\n'.format(mp2_e))
+#print('Pair corr energy matrix: {}'.format(np.diag(e_ij)))
+str_pair_list = abs(e_ij) > e_cut
+print('Strong pair matrix is symmetric: {}'.format(np.allclose(str_pair_list, str_pair_list.T)))
+# Create Tij and Ttij
+T_ij = t_ijab.copy()
+Tt_ij = 2 * T_ij - T_ij.transpose(0, 1, 3, 2)
 
-    # Form pair densities
+#print('T_ij for i = 0, j = 1:\n{}\nT_ij.T for i = 0, j = 1:\n{}\nTt_ij for i = 0, j = 1:\n{}'.format(T_ij[0, 1, :, :], T_ij[0, 1, :, :].T, Tt_ij[0, 1, :, :]))
 
-    # Diagonalize pair densities to get PNOs (Q) and occ_nos
+# Form pair densities
+D = np.einsum('ijab,ijab->ijab', T_ij, Tt_ij.transpose(0,1,3,2)) + np.einsum('ijab,ijab->ijab', T_ij.transpose(0, 1, 3, 2), Tt_ij)
+# Diagonalize pair densities to get PNOs (Q) and occ_nos
+occ_nos = np.empty((no_occ, no_occ, no_vir))
+Q = np.empty_like(t_ijab)
+for i in range(no_occ):
+    for j in range(no_occ):
+        occ_nos[i, j], Q[i, j] = np.linalg.eig(D[i, j, :, :])
 
-    # Get semicanonical transforms
-        # transform F_vir to PNO basis
-        # Diagonalize F_pno, get L
-        # save virtual orb. energies
+# Get semicanonical transforms
+    # transform F_vir to PNO basis
+    # Diagonalize F_pno, get L
+    # save virtual orb. energies
 
 # Update Ts
     # Transform Rs using Q
@@ -205,57 +224,66 @@ t_ijab = MO[:no_occ, :no_occ, no_occ:, no_occ:] / d_ijab
     # Back transform to RQs
     # Back transform to Rs
 
+
 # Make intermediates, Staunton:1991 eqns 3-11
 def make_taut(t_ia, t_ijab):
-    tau_t = t_ijab + 0.5* (np.einsum('ia,jb->ijab',t_ia,t_ia) - np.einsum('ib,ja->ijab',t_ia, t_ia))
+    tau_t = t_ijab + 0.5 * (np.einsum('ia,jb->ijab', t_ia, t_ia) - np.einsum('ib,ja->ijab', t_ia, t_ia))
     return tau_t
 
+
 def make_tau(t_ia, t_ijab):
-    tau = t_ijab + (np.einsum('ia,jb->ijab',t_ia,t_ia) - np.einsum('ib,ja->ijab',t_ia, t_ia)) 
+    tau = t_ijab + (np.einsum('ia,jb->ijab', t_ia, t_ia) - np.einsum('ib,ja->ijab', t_ia, t_ia))
     return tau
+
 
 def make_Fae(taut, t_ia, t_ijab):
     Fae = F_vir.copy()
     Fae[np.diag_indices_from(Fae)] = 0
     Fae -= ndot('me,ma->ae', F[:no_occ, no_occ:], t_ia, prefactor=0.5)
-    Fae += ndot('mf,mafe->ae',t_ia,MO[:no_occ, no_occ:, no_occ:, no_occ:])
-    Fae -= ndot('mnaf,mnef->ae', taut,MO[:no_occ, :no_occ, no_occ:, no_occ:], prefactor=0.5)
+    Fae += ndot('mf,mafe->ae', t_ia, MO[:no_occ, no_occ:, no_occ:, no_occ:])
+    Fae -= ndot('mnaf,mnef->ae', taut, MO[:no_occ, :no_occ, no_occ:, no_occ:], prefactor=0.5)
     return Fae
+
 
 def make_Fmi(taut, t_ia, t_ijab):
     Fmi = F_occ.copy()
     Fmi[np.diag_indices_from(Fmi)] = 0
     Fmi += ndot('ie,me->mi', t_ia, F[:no_occ, no_occ:], prefactor=0.5)
-    Fmi += ndot('ne,mnie->mi',t_ia,MO[:no_occ, :no_occ, :no_occ, no_occ:])
+    Fmi += ndot('ne,mnie->mi', t_ia, MO[:no_occ, :no_occ, :no_occ, no_occ:])
     Fmi += ndot('inef,mnef->mi', taut, MO[:no_occ, :no_occ, no_occ:, no_occ:], prefactor=0.5)
     return Fmi
 
+
 def make_Fme(t_ia, t_ijab):
-    Fme = F[:no_occ, no_occ:].copy() 
-    Fme += ndot('nf,mnef->me',t_ia, MO[:no_occ, :no_occ, no_occ:, no_occ:])
+    Fme = F[:no_occ, no_occ:].copy()
+    Fme += ndot('nf,mnef->me', t_ia, MO[:no_occ, :no_occ, no_occ:, no_occ:])
     return Fme
 
+
 def make_Wmnij(tau, t_ia, t_ijab):
-    Wmnij = MO[:no_occ, :no_occ, :no_occ, :no_occ].copy() 
-    Wmnij += ndot('je,mnie->mnij', t_ia, MO[:no_occ, :no_occ, :no_occ, no_occ:]) 
+    Wmnij = MO[:no_occ, :no_occ, :no_occ, :no_occ].copy()
+    Wmnij += ndot('je,mnie->mnij', t_ia, MO[:no_occ, :no_occ, :no_occ, no_occ:])
     Wmnij -= ndot('ie,mnje->mnij', t_ia, MO[:no_occ, :no_occ, :no_occ, no_occ:])
     Wmnij += ndot('ijef,mnef->mnij', tau, MO[:no_occ, :no_occ, no_occ:, no_occ:], prefactor=0.25)
     return Wmnij
 
+
 def make_Wabef(tau, t_ia, t_ijab):
     Wabef = MO[no_occ:, no_occ:, no_occ:, no_occ:].copy()
-    Wabef -= ndot('mb,amef->abef', t_ia, MO[no_occ:, :no_occ, no_occ:, no_occ:]) 
+    Wabef -= ndot('mb,amef->abef', t_ia, MO[no_occ:, :no_occ, no_occ:, no_occ:])
     Wabef += ndot('ma,bmef->abef', t_ia, MO[no_occ:, :no_occ, no_occ:, no_occ:])
     Wabef += ndot('mnab,mnef->abef', tau, MO[:no_occ, :no_occ, no_occ:, no_occ:], prefactor=0.25)
     return Wabef
 
+
 def make_Wmbej(t_ia, t_ijab):
-    Wmbej = MO[:no_occ, no_occ:, no_occ:, :no_occ].copy() 
-    Wmbej += ndot('jf,mbef->mbej', t_ia, MO[:no_occ, no_occ:, no_occ:, no_occ:]) 
+    Wmbej = MO[:no_occ, no_occ:, no_occ:, :no_occ].copy()
+    Wmbej += ndot('jf,mbef->mbej', t_ia, MO[:no_occ, no_occ:, no_occ:, no_occ:])
     Wmbej -= ndot('nb,mnej->mbej', t_ia, MO[:no_occ, :no_occ, no_occ:, :no_occ])
     Wmbej -= ndot('jnfb,mnef->mbej', t_ijab, MO[:no_occ, :no_occ, no_occ:, no_occ:], prefactor=0.5)
     Wmbej -= np.einsum('jf,nb,mnef->mbej', t_ia, t_ia, MO[:no_occ, :no_occ, no_occ:, no_occ:])
     return Wmbej
+
 
 # Update T1 and T2 amplitudes
 def update_ts(tau, tau_t, t_ia, t_ijab):
@@ -271,26 +299,26 @@ def update_ts(tau, tau_t, t_ia, t_ijab):
 
     # Create residual T1s
     Ria = F[:no_occ, no_occ:].copy()
-    Ria += ndot('ie,ae->ia',t_ia, Fae)
-    Ria -= ndot('ma,mi->ia',t_ia, Fmi)
-    Ria += ndot('imae,me->ia', t_ijab, Fme) 
-    Ria -= ndot('nf,naif->ia',t_ia, MO[:no_occ, no_occ:, :no_occ, no_occ:])
+    Ria += ndot('ie,ae->ia', t_ia, Fae)
+    Ria -= ndot('ma,mi->ia', t_ia, Fmi)
+    Ria += ndot('imae,me->ia', t_ijab, Fme)
+    Ria -= ndot('nf,naif->ia', t_ia, MO[:no_occ, no_occ:, :no_occ, no_occ:])
     Ria -= ndot('imef,maef->ia', t_ijab, MO[:no_occ, no_occ:, no_occ:, no_occ:], prefactor=0.5)
     Ria -= ndot('mnae,nmei->ia', t_ijab, MO[:no_occ, :no_occ, no_occ:, :no_occ], prefactor=0.5)
 
     # Create residual T2s
     Rijab = MO[:no_occ, :no_occ, no_occ:, no_occ:].copy()
     # Term 2
-    Rijab += ndot('ijae,be->ijab', t_ijab, Fae) 
+    Rijab += ndot('ijae,be->ijab', t_ijab, Fae)
     Rijab -= 0.5 * np.einsum('ijae,mb,me->ijab', t_ijab, t_ia, Fme)
     # Term 2 permuted
     Rijab -= ndot('ijbe,ae->ijab', t_ijab, Fae)
     Rijab += 0.5 * np.einsum('ijbe,ma,me->ijab', t_ijab, t_ia, Fme)
     # Term 3
-    Rijab -= ndot('imab,mj->ijab', t_ijab, Fmi) 
+    Rijab -= ndot('imab,mj->ijab', t_ijab, Fmi)
     Rijab -= 0.5 * np.einsum('imab,je,me->ijab', t_ijab, t_ia, Fme)
     # Term 3 permuted
-    Rijab += ndot('jmab,mi->ijab', t_ijab, Fmi) 
+    Rijab += ndot('jmab,mi->ijab', t_ijab, Fmi)
     Rijab += 0.5 * np.einsum('jmab,ie,me->ijab', t_ijab, t_ia, Fme)
     # Term 4
     Rijab += ndot('mnab,mnij->ijab', tau, Wmnij, prefactor=0.5)
@@ -305,7 +333,7 @@ def update_ts(tau, tau_t, t_ia, t_ijab):
     # Term 6 ab permuted
     Rijab -= ndot('imbe,maej->ijab', t_ijab, Wmbej)
     Rijab += np.einsum('ie,mb,maej->ijab', t_ia, t_ia, MO[:no_occ, no_occ:, no_occ:, :no_occ])
-    # Term 6 ij and ab permuted 
+    # Term 6 ij and ab permuted
     Rijab += ndot('jmbe,maei->ijab', t_ijab, Wmbej)
     Rijab -= np.einsum('je,mb,maei->ijab', t_ia, t_ia, MO[:no_occ, no_occ:, no_occ:, :no_occ])
     # Term 7
@@ -318,20 +346,21 @@ def update_ts(tau, tau_t, t_ia, t_ijab):
     Rijab += ndot('mb,maij->ijab', t_ia, MO[:no_occ, no_occ:, :no_occ, :no_occ])
 
     # Apply denominators
-    new_tia = Ria/d_ia
-    new_tijab = Rijab/d_ijab 
+    new_tia = Ria / d_ia
+    new_tijab = Rijab / d_ijab
 
     return new_tia, new_tijab
 
+
 # Compute CCSD correlation energy
 def corr_energy(t_ia, t_ijab):
-    E_corr = ndot('ia,ia->',F[:no_occ, no_occ:], t_ia)
+    E_corr = ndot('ia,ia->', F[:no_occ, no_occ:], t_ia)
     E_corr += ndot('ijab,ijab->', MO[:no_occ, :no_occ, no_occ:, no_occ:], t_ijab, prefactor=0.25)
     E_corr += 0.5 * np.einsum('ijab,ia,jb->', MO[:no_occ, :no_occ, no_occ:, no_occ:], t_ia, t_ia)
     return E_corr
 
 old_e = corr_energy(t_ia, t_ijab)
-print('Iteration\t\t CCSD Correlation energy\n0\t\t {}'.format(old_e)) 
+print('Iteration\t\t CCSD Correlation energy\n0\t\t {}'.format(old_e))
 
 # Iterate until convergence
 for i in range(maxiter):
@@ -346,4 +375,3 @@ for i in range(maxiter):
     t_ia = new_tia
     t_ijab = new_tijab
     old_e = new_e
-
