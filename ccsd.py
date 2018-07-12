@@ -24,7 +24,7 @@ H 1 1.1 2 104
 symmetry c1
 """)
 
-psi4.set_options({'basis': 'STO-3g', 'scf_type': 'pk', 'mp2_type': 'conv',
+psi4.set_options({'basis': '3-21g', 'scf_type': 'pk', 'mp2_type': 'conv',
                   'freeze_core': 'false', 'e_convergence': 1e-10,
                   'd_convergence': 1e-10, 'save_jk': 'true'})
 
@@ -35,6 +35,8 @@ print_amps = False
 compare_psi4 = False
 
 # Set for LPNO
+#local=True
+local=False
 e_cut = 1e-6
 
 # N dimensional dot
@@ -204,25 +206,34 @@ Tt_ij = 2 * T_ij - T_ij.transpose(0, 1, 3, 2)
 #print('T_ij for i = 0, j = 1:\n{}\nT_ij.T for i = 0, j = 1:\n{}\nTt_ij for i = 0, j = 1:\n{}'.format(T_ij[0, 1, :, :], T_ij[0, 1, :, :].T, Tt_ij[0, 1, :, :]))
 
 # Form pair densities
-D = np.einsum('ijab,ijab->ijab', T_ij, Tt_ij.transpose(0,1,3,2)) + np.einsum('ijab,ijab->ijab', T_ij.transpose(0, 1, 3, 2), Tt_ij)
+D = np.einsum('ijab,ijbc->ijac', T_ij, Tt_ij.transpose(0, 1, 3, 2)) + np.einsum('ijab,ijbc->ijac', T_ij.transpose(0, 1, 3, 2), Tt_ij)
+for i in range(no_occ):
+    for j in range(no_occ):
+        if i == j:
+            continue
+        D[i, j] *= 2.0
+
+print('Density [0, 1] :\n{}\n'.format(D[0,1]))
 # Diagonalize pair densities to get PNOs (Q) and occ_nos
 occ_nos = np.empty((no_occ, no_occ, no_vir))
 Q = np.empty_like(t_ijab)
 for i in range(no_occ):
     for j in range(no_occ):
-        occ_nos[i, j], Q[i, j] = np.linalg.eig(D[i, j, :, :])
+        occ_nos[i, j], Q[i, j] = np.linalg.eigh(D[i, j])
 
 # Get semicanonical transforms
     # transform F_vir to PNO basis
     # Diagonalize F_pno, get L
     # save virtual orb. energies
-
-# Update Ts
-    # Transform Rs using Q
-    # Transform RQs using L
-    # Use vir orb. energies from semicanonical
-    # Back transform to RQs
-    # Back transform to Rs
+F_pno = np.einsum('ijpa,ab,ijbq->ijpq', Q.transpose(0, 1, 3, 2), F_vir, Q)
+eps_pno = np.empty((no_occ, no_occ, no_vir))
+L = np.empty_like(t_ijab)
+for i in range(no_occ):
+    for j in range(no_occ):
+        #print('F_pno is symmetric: {}\n'.format(np.allclose(F_pno[i,j], F_pno[i, j].T)))
+        eps_pno[i, j], L[i, j] = np.linalg.eigh(F_pno[i, j])
+#print('Orbital energies in PNO basis:\n{}\n'.format(eps_pno))
+        #print('Q x L:\t\t {}\n'.format(Q[i, j] @ L[i, j]))
 
 
 # Make intermediates, Staunton:1991 eqns 3-11
@@ -345,9 +356,37 @@ def update_ts(tau, tau_t, t_ia, t_ijab):
     # Term 8 ab permuted
     Rijab += ndot('mb,maij->ijab', t_ia, MO[:no_occ, no_occ:, :no_occ, :no_occ])
 
-    # Apply denominators
-    new_tia = Ria / d_ia
-    new_tijab = Rijab / d_ijab
+    if local is True:
+        # Transform Rs using Q
+        R1Q = np.einsum('iiab,ib,iiba->ia', Q.transpose(0, 1, 3, 2), Ria, Q)
+        R2Q = np.einsum('ijca,ijab,ijbd->ijcd', Q.transpose(0, 1, 3, 2), Rijab, Q)
+        # Transform RQs using L
+        R1QL = np.einsum('iiab,ib,iiba->ia', L.transpose(0, 1, 3, 2), R1Q, L)
+        R2QL = np.einsum('ijca,ijab,ijbd->ijcd', L.transpose(0, 1, 3, 2), R2Q, L)
+        # Use vir orb. energies from semicanonical
+        d1_QL = np.empty_like(t_ia)
+        for i in range(no_occ):
+            for a in range(no_vir):
+                d1_QL[i, a] = eps_occ[i] - eps_pno[i, i, a]
+        d2_QL = np.empty_like(t_ijab)
+        for i in range(no_occ):
+            for j in range(no_occ):
+                for a in range(no_vir):
+                    for b in range(no_vir):
+                        d2_QL[i, j, a, b] = eps_occ[i] + eps_occ[j] - eps_pno[i, j, a] - eps_pno[i, j, b]
+        #print('denom in semi-canonical PNO basis:\n{}\n'.format(d_QL.shape))
+        T1QL = R1QL / d1_QL
+        T2QL = R2QL / d2_QL
+        # Back transform to TQs
+        T1Q = np.einsum('iiab,ib,iiba->ia', L, T1QL, L.transpose(0, 1, 3, 2))
+        T2Q = np.einsum('ijca,ijab,ijbd->ijcd', L, T2QL, L.transpose(0, 1, 3, 2))
+        # Back transform to Ts
+        new_tia = np.einsum('iiab,ib,iiba->ia', Q, T1Q, Q.transpose(0, 1, 3, 2))
+        new_tijab = np.einsum('ijca,ijab,ijbd->ijcd', Q, T2Q, Q.transpose(0, 1, 3, 2))
+    else:
+        # Apply denominators
+        new_tia = Ria / d_ia
+        new_tijab = Rijab / d_ijab
 
     return new_tia, new_tijab
 
