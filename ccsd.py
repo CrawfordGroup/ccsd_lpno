@@ -27,13 +27,13 @@ H 1 1.1 2 104
 symmetry c1
 """)
 
-psi4.set_options({'basis': '3-21g', 'scf_type': 'pk', 'mp2_type': 'conv',
+psi4.set_options({'basis': '6-31g', 'scf_type': 'pk', 'mp2_type': 'conv',
                   'freeze_core': 'false', 'e_convergence': 1e-12,
                   'd_convergence': 1e-10, 'save_jk': 'true'})
 
 # Set for CCSD
 E_conv = 1e-6
-maxiter = 30
+maxiter = 40
 print_amps = False
 compare_psi4 = False
 
@@ -41,7 +41,7 @@ compare_psi4 = False
 local=True
 #local=False
 e_cut = 1e-4
-pno_cut = 1e-11
+pno_cut = 0
 
 # N dimensional dot
 # Like a mini DPD library
@@ -150,38 +150,37 @@ C = wfn.Ca()
 c_arr = C.to_array()
 C_occ = wfn.Ca_subset("AO", "OCC")
 basis = wfn.basisset()
-Local = psi4.core.Localizer.build("PIPEK_MEZEY", basis, C_occ)
-Local.localize()
-new_C_occ = Local.L
 no_occ = wfn.doccpi()[0]
 no_mo = wfn.nmo()
 eps = np.asarray(wfn.epsilon_a())
 J = wfn.jk().J()[0].to_array()
 K = wfn.jk().K()[0].to_array()
-nc_arr = C.to_array()
-nco_arr = new_C_occ.to_array()
-nc_arr[:, :no_occ] = nco_arr[:,:]
-new_C = psi4.core.Matrix.from_array(nc_arr)
-
-print("CT @ C:\n{}".format(c_arr.T @ c_arr))
-print("nCT @ nC:\n{}".format(nc_arr.T @ nc_arr))
 
 C.print_out()
-
-new_C.print_out()
 
 mints = psi4.core.MintsHelper(wfn.basisset())
 
 H = np.asarray(mints.ao_kinetic()) + np.asarray(mints.ao_potential())
 
 # Make MO integrals
-MO = np.asarray(mints.mo_eri(new_C, new_C, new_C, new_C))
+if local:
+    Local = psi4.core.Localizer.build("PIPEK_MEZEY", basis, C_occ)
+    Local.localize()
+    new_C_occ = Local.L
+    nc_arr = C.to_array()
+    nco_arr = new_C_occ.to_array()
+    nc_arr[:, :no_occ] = nco_arr[:,:]
+    new_C = psi4.core.Matrix.from_array(nc_arr)
+    MO = np.asarray(mints.mo_eri(new_C, new_C, new_C, new_C))
+else:    
+    MO = np.asarray(mints.mo_eri(C, C, C, C))
 
 # Need to change ERIs to physicist notation
 MO = MO.swapaxes(1, 2)
 
 # Build Fock matrix
-F = H + 2 * np.einsum('pmqm->pq', MO[:, :no_occ, :, :no_occ]) - np.einsum('pmmq->pq', MO[:, :no_occ, :no_occ, :])
+#F = H + 2 * np.einsum('pmqm->pq', MO[:, :no_occ, :, :no_occ]) - np.einsum('pmmq->pq', MO[:, :no_occ, :no_occ, :])
+F = H + 2.0 * J - K
 
 # change no. of MOs, no_occ, no_vir
 #no_mo = no_mo * 2
@@ -191,19 +190,17 @@ no_vir = no_mo - no_occ
 
 print('no_occ: {} no_vir: {}'.format(no_occ, no_vir))
 
-eps_occ = eps[:no_occ]
-eps_vir = eps[no_occ:]
 # note that occ.transpose(col) - vir(row) gives occ x vir matrix of differences
 # needs F_occ and F_vir separate (will need F_vir for semi-canonical basis later)
 
 # Make F MO basis
-F = np.einsum('uj, vi, uv', new_C, new_C, F)
-#F = np.repeat(F, 2, axis=0)
-#F = np.repeat(F, 2, axis=1)
+if local:
+    F = np.einsum('uj, vi, uv', new_C, new_C, F)
+else:
+    F = np.einsum('uj, vi, uv', C, C, F)
 
-# Make F block diagonal
-spin_ind = np.arange(F.shape[0], dtype=np.int) % 2
-F *= (spin_ind.reshape(-1, 1) == spin_ind)
+eps_occ = eps[:no_occ]
+eps_vir = eps[no_occ:]
 
 F_occ = F[:no_occ, :no_occ]
 F_vir = F[no_occ:, no_occ:]
@@ -389,16 +386,6 @@ def update_ts(tau, tau_t, t_ia, t_ijab):
 
     if local:
         # Q[i, b, a] is diff from Q[i, i, b, a]!
-        #tmp_Q = []
-        #tmp_L = []
-        #tmp_eps = []
-        #for i in range(no_occ):
-        #    tmp_Q.append(Q[i*no_occ+i])
-        #    tmp_L.append(L_list[i*no_occ+i])
-        #    tmp_eps.append(eps_pno_list[i*no_occ+i])
-        #tmp_Q = np.asarray(tmp_Q)
-        #tmp_L = np.asarray(tmp_L)
-        #tmp_eps = np.asarray(tmp_eps)
 
         # Update T1s
         new_tia = t_ia.copy()
@@ -443,8 +430,10 @@ def update_ts(tau, tau_t, t_ia, t_ijab):
             new_tijab[ij // no_occ, ij % no_occ] += np.einsum('ca,ab,db->cd', tmp1, T2Q, tmp1)
     else:
         # Apply denominators
-        new_tia =  t_ia + Ria / d_ia
-        new_tijab = t_ijab + Rijab / d_ijab
+        new_tia =  t_ia.copy() 
+        new_tia += Ria / d_ia
+        new_tijab = t_ijab.copy() 
+        new_tijab += Rijab / d_ijab
 
     return new_tia, new_tijab
 
