@@ -19,6 +19,7 @@ psi4.core.set_output_file('output.dat', False)
 np.set_printoptions(precision=8, linewidth=400, suppress=True)
 numpy_memory = 2
 
+# Set Psi4 options
 mol = psi4.geometry("""
 O
 H 1 1.1
@@ -26,7 +27,7 @@ H 1 1.1 2 104
 symmetry c1
 """)
 
-psi4.set_options({'basis': 'cc-pVDZ', 'scf_type': 'pk', 'mp2_type': 'conv',
+psi4.set_options({'basis': '3-21g', 'scf_type': 'pk', 'mp2_type': 'conv',
                   'freeze_core': 'false', 'e_convergence': 1e-12,
                   'd_convergence': 1e-10, 'save_jk': 'true'})
 
@@ -39,7 +40,8 @@ compare_psi4 = False
 # Set for LPNO
 local=True
 #local=False
-e_cut = 1e-6
+e_cut = 1e-4
+pno_cut = 1e-11
 
 # N dimensional dot
 # Like a mini DPD library
@@ -138,28 +140,48 @@ def ndot(input_string, op1, op2, prefactor=None):
 
 # Compute RHF energy with psi4
 e_scf, wfn = psi4.energy('SCF', return_wfn=True)
-
 print('SCF energy: {}\n'.format(e_scf))
+
+# Get localized occupied orbitals
+
 
 # Get no_occ, no_mo, e_scf(?), eps
 C = wfn.Ca()
+c_arr = C.to_array()
+C_occ = wfn.Ca_subset("AO", "OCC")
+basis = wfn.basisset()
+Local = psi4.core.Localizer.build("PIPEK_MEZEY", basis, C_occ)
+Local.localize()
+new_C_occ = Local.L
 no_occ = wfn.doccpi()[0]
 no_mo = wfn.nmo()
 eps = np.asarray(wfn.epsilon_a())
 J = wfn.jk().J()[0].to_array()
 K = wfn.jk().K()[0].to_array()
+nc_arr = C.to_array()
+nco_arr = new_C_occ.to_array()
+nc_arr[:, :no_occ] = nco_arr[:,:]
+new_C = psi4.core.Matrix.from_array(nc_arr)
+
+print("CT @ C:\n{}".format(c_arr.T @ c_arr))
+print("nCT @ nC:\n{}".format(nc_arr.T @ nc_arr))
+
+C.print_out()
+
+new_C.print_out()
 
 mints = psi4.core.MintsHelper(wfn.basisset())
 
 H = np.asarray(mints.ao_kinetic()) + np.asarray(mints.ao_potential())
 
-F = H + 2 * J - K
-
-# Make spin-orbital MO integrals
-MO = np.asarray(mints.mo_eri(C, C, C, C))
+# Make MO integrals
+MO = np.asarray(mints.mo_eri(new_C, new_C, new_C, new_C))
 
 # Need to change ERIs to physicist notation
 MO = MO.swapaxes(1, 2)
+
+# Build Fock matrix
+F = H + 2 * np.einsum('pmqm->pq', MO[:, :no_occ, :, :no_occ]) - np.einsum('pmmq->pq', MO[:, :no_occ, :no_occ, :])
 
 # change no. of MOs, no_occ, no_vir
 #no_mo = no_mo * 2
@@ -175,7 +197,7 @@ eps_vir = eps[no_occ:]
 # needs F_occ and F_vir separate (will need F_vir for semi-canonical basis later)
 
 # Make F MO basis
-F = np.einsum('uj, vi, uv', C, C, F)
+F = np.einsum('uj, vi, uv', new_C, new_C, F)
 #F = np.repeat(F, 2, axis=0)
 #F = np.repeat(F, 2, axis=1)
 
@@ -366,35 +388,59 @@ def update_ts(tau, tau_t, t_ia, t_ijab):
     Rijab -= tmp.swapaxes(0, 1).swapaxes(2, 3)
 
     if local:
-        # Transform Rs using Q
-        R1Q = np.einsum('iiba,ib,iiba->ia', Q, Ria, Q)
-        R2Q = np.einsum('ijac,ijab,ijbd->ijcd', Q, Rijab, Q)
-        # Transform RQs using L
-        R1QL = np.einsum('iiba,ib,iiba->ia', L, R1Q, L)
-        R2QL = np.einsum('ijac,ijab,ijbd->ijcd', L, R2Q, L)
-        # Use vir orb. energies from semicanonical
-        d1_QL = np.zeros_like(t_ia)
-        for i in range(no_occ):
-            for a in range(no_vir):
-                d1_QL[i, a] = F_occ[i, i] - eps_pno[i, i, a]
-        d2_QL = np.zeros_like(t_ijab)
-        for i in range(no_occ):
-            for j in range(no_occ):
-                for a in range(no_vir):
-                    for b in range(no_vir):
-                        d2_QL[i, j, a, b] = F_occ[i, i] + F_occ[j, j] - eps_pno[i, j, a] - eps_pno[i, j, b]
-        #print('denom in semi-canonical PNO basis:\n{}\n'.format(d_QL.shape))
-        T1QL = R1QL / d1_QL
-        T2QL = R2QL / d2_QL
-        # Back transform to TQs
-        T1Q = np.einsum('iiab,ib,iiab->ia', L, T1QL, L)
-        T2Q = np.einsum('ijca,ijab,ijdb->ijcd', L, T2QL, L)
-        # Back transform to Ts
+        # Q[i, b, a] is diff from Q[i, i, b, a]!
+        #tmp_Q = []
+        #tmp_L = []
+        #tmp_eps = []
+        #for i in range(no_occ):
+        #    tmp_Q.append(Q[i*no_occ+i])
+        #    tmp_L.append(L_list[i*no_occ+i])
+        #    tmp_eps.append(eps_pno_list[i*no_occ+i])
+        #tmp_Q = np.asarray(tmp_Q)
+        #tmp_L = np.asarray(tmp_L)
+        #tmp_eps = np.asarray(tmp_eps)
+
+        # Update T1s
         new_tia = t_ia.copy()
-        new_tia += np.einsum('iiab,ib,iiab->ia', Q, T1Q, Q)
-        #new_tia = Ria / d_ia
+        for i in range(no_occ):
+            tmp_Q = Q_list[i*no_occ+i]
+            tmp_L = L_list[i*no_occ+i]
+            # Transform Rs using Q
+            R1Q = np.einsum('b,ba->a', Ria[i], tmp_Q)
+            # Transform RQs using L
+            R1QL = np.einsum('b,ba->a', R1Q, tmp_L)
+            tmp3 = eps_pno_list[i*no_occ+i]
+            # Use vir orb. energies from semicanonical
+            d1_QL = np.zeros(tmp3.shape[0])
+            for a in range(tmp3.shape[0]):
+                d1_QL[a] = F_occ[i, i] - tmp3[a]
+            T1QL = R1QL / d1_QL
+            # Back transform to TQs
+            T1Q = np.einsum('ab,b->a', tmp_L, T1QL)
+            # Back transform to Ts
+            new_tia[i] += np.einsum('ab,b->a', tmp_Q, T1Q)
+        
+        # Update T2s
         new_tijab = t_ijab.copy()
-        new_tijab += np.einsum('ijca,ijab,ijdb->ijcd', Q, T2Q, Q)
+        for ij in range(no_occ * no_occ):
+            tmp1 = Q_list[ij]
+            # Transform Rs using Q
+            R2Q = np.einsum('ac,ab,bd->cd', tmp1, Rijab[ij // no_occ, ij % no_occ], tmp1)
+            # Transform RQs using L
+            tmp2 = L_list[ij]
+            R2QL = np.einsum('ac,ab,bd->cd', tmp2, R2Q, tmp2)
+            # Use vir orb. energies from semicanonical
+            tmp3 = eps_pno_list[ij]
+            d2_QL = np.zeros((tmp3.shape[0], tmp3.shape[0]))
+            for a in range(tmp3.shape[0]):
+                for b in range(tmp3.shape[0]):
+                    d2_QL[a, b] = F_occ[ij // no_occ, ij // no_occ ] + F_occ[ij % no_occ, ij % no_occ] - tmp3[a] - tmp3[b]
+            #print('denom in semi-canonical PNO basis:\n{}\n'.format(d_QL.shape))
+            T2QL = R2QL / d2_QL
+            # Back transform to TQs
+            T2Q = np.einsum('ca,ab,db->cd', tmp2, T2QL, tmp2)
+            # Back transform to Ts
+            new_tijab[ij // no_occ, ij % no_occ] += np.einsum('ca,ab,db->cd', tmp1, T2Q, tmp1)
     else:
         # Apply denominators
         new_tia =  t_ia + Ria / d_ia
@@ -416,49 +462,64 @@ if local:
     print('Local switch on. Initializing PNOs.')
 
     # Identify weak pairs using MP2 pair corr energy
-    e_ij = 0.5 * np.einsum('ijab,ijab->ij', MO[:no_occ, :no_occ, no_occ:, no_occ:], t_ijab)
+    e_ij = ndot('ijab,ijab->ij', MO[:no_occ, :no_occ, no_occ:, no_occ:], t_ijab)
     mp2_e  = corr_energy(t_ia, t_ijab)
     print('MP2 correlation energy: {}\n'.format(mp2_e))
-    #print('Pair corr energy matrix: {}'.format(np.diag(e_ij)))
+    print('Pair corr energy matrix:\n{}'.format(e_ij))
     str_pair_list = abs(e_ij) > e_cut
-    print('Strong pair matrix is symmetric: {}'.format(np.allclose(str_pair_list, str_pair_list.T)))
+    print('Strong pair list:\n{}'.format(str_pair_list.reshape(1,-1)))
     # Create Tij and Ttij
-    T_ij = t_ijab.copy()
-    Tt_ij = 2 * T_ij - T_ij.transpose(0, 1, 3, 2)
+    T_ij = t_ijab.copy().reshape((no_occ * no_occ, no_vir, no_vir))
+    Tt_ij = 2 * T_ij - T_ij.swapaxes(1, 2)
 
     #print('T_ij for i = 0, j = 1:\n{}\nT_ij.T for i = 0, j = 1:\n{}\nTt_ij for i = 0, j = 1:\n{}'.format(T_ij[0, 1, :, :], T_ij[0, 1, :, :].T, Tt_ij[0, 1, :, :]))
 
     # Form pair densities
-    D = np.einsum('ijab,ijcb->ijac', T_ij, Tt_ij) + np.einsum('ijba,ijbc->ijac', T_ij, Tt_ij)
-    for i in range(no_occ):
-        for j in range(no_occ):
-            if i == j:
-                continue
-            else:
-                D[i, j] *= 2.0
-    #print("Density matrix [0, 0]: \n{}".format(D[0,0]))
+    D = np.einsum('iab,icb->iac', T_ij, Tt_ij) + np.einsum('iba,ibc->iac', T_ij, Tt_ij)
+    for ij in range(no_occ * no_occ):
+        i = ij // no_occ
+        j = ij % no_occ
+        if i == j:
+            continue
+        else:
+            D[ij] *= 2.0
+    #print("Density matrix [0, 0]: \n{}".format(D[0]))
 
     # Diagonalize pair densities to get PNOs (Q) and occ_nos
-    occ_nos = np.zeros((no_occ, no_occ, no_vir))
-    Q = np.zeros((no_occ, no_occ, no_vir, no_vir))
-    for i in range(no_occ):
-        for j in range(no_occ):
-            occ_nos[i, j], Q[i, j] = np.linalg.eigh(D[i, j])
+    occ_nos = np.zeros((no_occ * no_occ, no_vir))
+    Q = np.zeros((no_occ * no_occ, no_vir, no_vir))
+    for ij in range(no_occ * no_occ):
+            occ_nos[ij], Q[ij] = np.linalg.eigh(D[ij])
 
-    #print('Occupation numbers [0, 1]:\n {}'.format(occ_nos[0, 1]))
-    #print('Transformation matrix [0, 0] :\n{}\n'.format(Q[0, 0]))
+    # Truncate each set of pnos by occ no
+    s_pairs = np.zeros(no_occ * no_occ)
+    Q_list = []
+    for ij in range(no_occ * no_occ):
+        survivors = abs(occ_nos[ij]) > pno_cut
+        for a in range(no_vir):
+            if survivors[a] == True:
+                s_pairs[ij] += 1
+        rm_pairs = no_vir - int(s_pairs[ij])
+        Q_list.append(Q[ij, :, rm_pairs:])
+
+    print('Occupation numbers [23]:\n {}'.format(occ_nos[23]))
+    print("Surviving Q vec [23]:\n{}".format(Q_list[23]))
+    print("Numbers of surviving pairs:\n{}".format(s_pairs))
 
     # Get semicanonical transforms
         # transform F_vir to PNO basis
         # Diagonalize F_pno, get L
         # save virtual orb. energies
-    F_pno = np.einsum('ijpa,ab,ijbq->ijpq', Q.transpose(0, 1, 3, 2), F_vir, Q)
-    eps_pno = np.zeros((no_occ, no_occ, no_vir))
-    L = np.zeros_like(t_ijab)
-    for i in range(no_occ):
-        for j in range(no_occ):
-            eps_pno[i, j], L[i, j] = np.linalg.eigh(F_pno[i, j])
-    print('Q x L:\t\t {}\n'.format(Q[1, 0] @ L[1, 0]))
+    eps_pno_list = [] 
+    L_list = []
+    # For each ij, F_pno is pno x pno dimension
+    for ij in range(no_occ * no_occ):
+        tmp1 = Q_list[ij]
+        F_pno = np.einsum('pa,ab,bq->pq', tmp1.swapaxes(0, 1), F_vir, tmp1)
+        eps_pno, L = np.linalg.eigh(F_pno)
+        eps_pno_list.append(eps_pno)
+        L_list.append(L)
+    #print('Q x L:\n{}\n'.format(Q @ L))
 
 old_e = corr_energy(t_ia, t_ijab)
 print('Iteration\t\t CCSD Correlation energy\t\tDifference\nMP2\t\t\t {}'.format(old_e))
