@@ -16,23 +16,38 @@ psi4.core.clean()
 # Set memory
 psi4.set_memory('2 GB')
 psi4.core.set_output_file('output.dat', False)
-np.set_printoptions(precision=8, linewidth=400, suppress=True)
+np.set_printoptions(precision=12, linewidth=400, suppress=True)
 numpy_memory = 2
 
 # Set Psi4 options
-mol = psi4.geometry("""
-O
-H 1 1.1
-H 1 1.1 2 104
+mol = psi4.geometry("""                                                 
+H
+H 1 R
+H 1 D 2 P
+H 3 R 1 P 2 T
+H 3 D 4 P 1 X
+H 5 R 3 P 4 T
+H 5 D 6 P 3 X
+H 7 R 5 P 6 T    
+
+R = 0.75 
+D = 1.5
+P = 90.0 
+T = 60.0 
+X = 180.0
+
+no_reorient
+no_com
 symmetry c1
 """)
 
-psi4.set_options({'basis': '6-31g', 'scf_type': 'pk', 'mp2_type': 'conv',
-                  'freeze_core': 'false', 'e_convergence': 1e-12,
+psi4.set_options({'basis': 'aug-cc-pVDZ', 'scf_type': 'pk',
+                  'freeze_core': 'false', 'e_convergence': 1e-10,
                   'd_convergence': 1e-10, 'save_jk': 'true'})
 
 # Set for CCSD
-E_conv = 1e-6
+E_conv = 1e-8
+R_conv = 1e-7
 maxiter = 40
 print_amps = False
 compare_psi4 = False
@@ -41,7 +56,7 @@ compare_psi4 = False
 local=True
 #local=False
 e_cut = 1e-4
-pno_cut = 0
+pno_cut = 1e-7
 
 # N dimensional dot
 # Like a mini DPD library
@@ -164,7 +179,7 @@ H = np.asarray(mints.ao_kinetic()) + np.asarray(mints.ao_potential())
 
 # Make MO integrals
 if local:
-    Local = psi4.core.Localizer.build("PIPEK_MEZEY", basis, C_occ)
+    Local = psi4.core.Localizer.build("BOYS", basis, C_occ)
     Local.localize()
     new_C_occ = Local.L
     nc_arr = C.to_array()
@@ -179,7 +194,6 @@ else:
 MO = MO.swapaxes(1, 2)
 
 # Build Fock matrix
-#F = H + 2 * np.einsum('pmqm->pq', MO[:, :no_occ, :, :no_occ]) - np.einsum('pmmq->pq', MO[:, :no_occ, :no_occ, :])
 F = H + 2.0 * J - K
 
 # change no. of MOs, no_occ, no_vir
@@ -196,6 +210,7 @@ print('no_occ: {} no_vir: {}'.format(no_occ, no_vir))
 # Make F MO basis
 if local:
     F = np.einsum('uj, vi, uv', new_C, new_C, F)
+#    eps, c = np.linalg.eig(F)
 else:
     F = np.einsum('uj, vi, uv', C, C, F)
 
@@ -389,7 +404,8 @@ def update_ts(tau, tau_t, t_ia, t_ijab):
 
         # Update T1s
         new_tia = t_ia.copy()
-        for i in range(no_occ):
+        new_tia += Ria / d_ia
+        '''for i in range(no_occ):
             tmp_Q = Q_list[i*no_occ+i]
             tmp_L = L_list[i*no_occ+i]
             # Transform Rs using Q
@@ -406,7 +422,7 @@ def update_ts(tau, tau_t, t_ia, t_ijab):
             T1Q = np.einsum('ab,b->a', tmp_L, T1QL)
             # Back transform to Ts
             new_tia[i] += np.einsum('ab,b->a', tmp_Q, T1Q)
-        
+        '''
         # Update T2s
         new_tijab = t_ijab.copy()
         for ij in range(no_occ * no_occ):
@@ -456,22 +472,21 @@ if local:
     print('MP2 correlation energy: {}\n'.format(mp2_e))
     print('Pair corr energy matrix:\n{}'.format(e_ij))
     str_pair_list = abs(e_ij) > e_cut
-    print('Strong pair list:\n{}'.format(str_pair_list.reshape(1,-1)))
+    #print('Strong pair list:\n{}'.format(str_pair_list.reshape(1,-1)))
+    
     # Create Tij and Ttij
     T_ij = t_ijab.copy().reshape((no_occ * no_occ, no_vir, no_vir))
-    Tt_ij = 2 * T_ij - T_ij.swapaxes(1, 2)
+    Tt_ij = 2.0 * T_ij.copy() 
+    Tt_ij -= T_ij.swapaxes(1, 2)
 
-    #print('T_ij for i = 0, j = 1:\n{}\nT_ij.T for i = 0, j = 1:\n{}\nTt_ij for i = 0, j = 1:\n{}'.format(T_ij[0, 1, :, :], T_ij[0, 1, :, :].T, Tt_ij[0, 1, :, :]))
 
     # Form pair densities
-    D = np.einsum('iab,icb->iac', T_ij, Tt_ij) + np.einsum('iba,ibc->iac', T_ij, Tt_ij)
+    D = np.zeros((no_occ * no_occ, no_vir, no_vir))
     for ij in range(no_occ * no_occ):
         i = ij // no_occ
         j = ij % no_occ
-        if i == j:
-            continue
-        else:
-            D[ij] *= 2.0
+        D[ij] = np.einsum('ab,bc->ac', T_ij[ij], Tt_ij[ij].T) + np.einsum('ab,bc->ac', T_ij[ij].T, Tt_ij[ij])
+        D[ij] *= 2.0 / (1.0 + int(i==j))
     #print("Density matrix [0, 0]: \n{}".format(D[0]))
 
     # Diagonalize pair densities to get PNOs (Q) and occ_nos
@@ -483,17 +498,22 @@ if local:
     # Truncate each set of pnos by occ no
     s_pairs = np.zeros(no_occ * no_occ)
     Q_list = []
+    avg = 0.0
     for ij in range(no_occ * no_occ):
-        survivors = abs(occ_nos[ij]) > pno_cut
+        survivors = occ_nos[ij] > pno_cut
+        if ij == 0:
+            print("Survivors[0]:\n{}".format(survivors))
         for a in range(no_vir):
             if survivors[a] == True:
                 s_pairs[ij] += 1
+        avg += s_pairs[ij]
         rm_pairs = no_vir - int(s_pairs[ij])
         Q_list.append(Q[ij, :, rm_pairs:])
-
-    print('Occupation numbers [23]:\n {}'.format(occ_nos[23]))
-    print("Surviving Q vec [23]:\n{}".format(Q_list[23]))
-    print("Numbers of surviving pairs:\n{}".format(s_pairs))
+    
+    avg = avg/(no_occ * no_occ)
+    print('Occupation numbers [0]:\n {}'.format(occ_nos[0]))
+    print("Numbers of surviving PNOs:\n{}".format(s_pairs))
+    print('Average number of PNOs:\n{}'.format(avg))
 
     # Get semicanonical transforms
         # transform F_vir to PNO basis
@@ -511,7 +531,7 @@ if local:
     #print('Q x L:\n{}\n'.format(Q @ L))
 
 old_e = corr_energy(t_ia, t_ijab)
-print('Iteration\t\t CCSD Correlation energy\t\tDifference\nMP2\t\t\t {}'.format(old_e))
+print('Iteration\t\t CCSD Correlation energy\t\tDifference\t\tRMS\nMP2\t\t\t {}'.format(old_e))
 
 # Iterate until convergence
 for i in range(maxiter):
@@ -519,8 +539,10 @@ for i in range(maxiter):
     tau = make_tau(t_ia, t_ijab)
     new_tia, new_tijab = update_ts(tau, tau_t, t_ia, t_ijab)
     new_e = corr_energy(new_tia, new_tijab)
-    print('{}\t\t\t {}\t\t\t{}'.format(i, new_e, abs(new_e - old_e)))
-    if(abs(new_e - old_e) < E_conv):
+    rms = np.linalg.norm(new_tia - t_ia)
+    rms += np.linalg.norm(new_tijab - t_ijab)
+    print('{}\t\t\t {}\t\t\t{}\t\t\t{}'.format(i, new_e, abs(new_e - old_e), rms))
+    if(abs(new_e - old_e) < E_conv and abs(rms) < R_conv):
         print('Convergence reached.\n CCSD Correlation energy: {}\n'.format(new_e))
         break
     t_ia = new_tia
