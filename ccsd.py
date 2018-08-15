@@ -17,28 +17,32 @@ psi4.core.clean()
 # Set memory
 psi4.set_memory('2 GB')
 psi4.core.set_output_file('output.dat', False)
-np.set_printoptions(precision=12, linewidth=400, suppress=True)
+np.set_printoptions(precision=12, threshold=np.inf, linewidth=200, suppress=True)
 numpy_memory = 2
 
 # Set Psi4 options
 mol = psi4.geometry("""                                                 
 H
-H 1 R
-H 1 D 2 P
-H 3 R 1 P 2 T
-H 3 D 4 P 1 X
-H 5 R 3 P 4 T
-H 5 D 6 P 3 X
-H 7 R 5 P 6 T    
+H 1 R 
+H 1 D 2 P 
+H 3 R 1 P 2 T 
+H 3 D 4 P 1 X 
+H 5 R 3 P 4 T 
+H 5 D 6 P 3 X 
+H 7 R 5 P 6 T 
+H 7 D 8 P 5 X 
+H 9 R 7 P 8 T 
+H 9 D 10 P 7 X 
+H 11 R 9 P 10 T
+H 11 D 12 P 9 X 
+H 13 R 11 P 12 T
 
-R = 0.75 
-D = 1.5
-P = 90.0 
-T = 60.0 
+R = 0.75
+D = 1.5 
+P = 90.0
+T = 60.0
 X = 180.0
-
-no_reorient
-no_com
+noreorient
 symmetry c1
 """)
 
@@ -56,11 +60,12 @@ compare_psi4 = False
 local=True
 #local=False
 e_cut = 1e-4
-pno_cut = 1e-7
+pno_cut = 1e-6
 
 # Compute RHF energy with psi4
 e_scf, wfn = psi4.energy('SCF', return_wfn=True)
 print('SCF energy: {}\n'.format(e_scf))
+print('Nuclear repulsion energy: {}\n'.format(mol.nuclear_repulsion_energy()))
 
 # Create Helper_CCenergy object
 hcc = HelperCCEnergy(local, pno_cut, wfn) 

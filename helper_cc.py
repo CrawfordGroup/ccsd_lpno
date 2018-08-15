@@ -12,6 +12,7 @@ class HelperCCEnergy(object):
 
         # Get orbital coeffs from wfn
         C = self.wfn.Ca()
+        C.print_out()
         c_arr = C.to_array()
         self.C_occ = self.wfn.Ca_subset("AO", "OCC")
         basis = self.wfn.basisset()
@@ -25,6 +26,7 @@ class HelperCCEnergy(object):
 
         self.H = np.asarray(mints.ao_kinetic()) + np.asarray(mints.ao_potential())
 
+        I = mints.ao_eri()
         # Get localized occupied orbitals
         # Make MO integrals
         if local:
@@ -39,28 +41,41 @@ class HelperCCEnergy(object):
         else:    
             self.MO = np.asarray(mints.mo_eri(C, C, C, C))
 
-        # Need to change ERIs to physicist notation
-        self.MO = self.MO.swapaxes(1, 2)
 
         # Build Fock matrix
-        self.F = self.H + 2.0 * self.J - self.K
+        if local:
+            De = np.einsum('ui,vi->uv', new_C_occ, new_C_occ)
+            self.F = self.H + 2.0 * np.einsum('pqrs,rs->pq', I, De) - np.einsum('prqs,rs->pq', I, De)
+            self.F = np.einsum('uj, vi, uv', new_C, new_C, self.F)
+        else:
+            self.F = self.H + 2.0 * self.J - self.K
+            self.F = np.einsum('uj, vi, uv', C, C, self.F)
+
+        self.F_ao = self.H + 2.0 * np.einsum('pqrs,rs->pq', I, De) - np.einsum('prqs,rs->pq', I, De)
+        #test = self.H + 2.0 * self.J - self.K
+        #test = np.einsum('uj, vi, uv', C, C, test)
+
+        hf_e = np.einsum('pq,pq->', self.H + self.F_ao, De)
+        print("Hartree-Fock energy: {}".format(hf_e + 8.002366450719077))
+
+        # Need to change ERIs to physicist notation
+        self.MO = self.MO.swapaxes(1, 2)
 
         # Get No. of virtuals
         self.no_vir = self.no_mo - self.no_occ
         print('no_occ: {} no_vir: {}'.format(self.no_occ, self.no_vir))
 
-        # Make F MO basis
-        if local:
-            self.F = np.einsum('uj, vi, uv', new_C, new_C, self.F)
-        else:
-            self.F = np.einsum('uj, vi, uv', C, C, self.F)
-
-        self.eps_occ = self.eps[:self.no_occ]
-        self.eps_vir = self.eps[self.no_occ:]
-
         # Need F_occ and F_vir separate (will need F_vir for semi-canonical basis later)
         self.F_occ = self.F[:self.no_occ, :self.no_occ]
         self.F_vir = self.F[self.no_occ:, self.no_occ:]
+
+        #print("MO basis F_vir:\n{}\n".format(self.F_vir))
+        #print("MO basis F_occ:\n{}\n".format(self.F_occ))
+        #self.eps_occ = self.eps[:self.no_occ]
+        #self.eps_vir = self.eps[self.no_occ:]
+        self.eps_occ = np.diag(self.F_occ)
+        self.eps_vir = np.diag(self.F_vir)
+
 
         # init T1s
         self.t_ia = np.zeros((self.no_occ, self.no_vir))
@@ -70,7 +85,10 @@ class HelperCCEnergy(object):
         self.d_ia = self.eps_occ.reshape(-1, 1) - self.eps_vir
         self.d_ijab = self.eps_occ.reshape(-1, 1, 1, 1) + self.eps_occ.reshape(-1, 1, 1) - self.eps_vir.reshape(-1, 1) - self.eps_vir
         self.t_ijab = self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:].copy()
+        # T2s matching!
+        #print("T2s[0,0]:\{}".format(self.t_ijab[0,0]))
         self.t_ijab /= self.d_ijab
+        #print("denoms[0,0]:\{}".format(self.d_ijab[0,0]))
 
         if local:
             # Initialize PNOs
@@ -79,13 +97,14 @@ class HelperCCEnergy(object):
             # Identify weak pairs using MP2 pair corr energy
             e_ij = ndot('ijab,ijab->ij', self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.t_ijab)
             self.mp2_e  = self.corr_energy(self.t_ia, self.t_ijab)
-            print('MP2 correlation energy: {}\n'.format(self.mp2_e))
-            print('Pair corr energy matrix:\n{}'.format(e_ij))
+            #print('MP2 correlation energy: {}\n'.format(self.mp2_e))
+            #print('Pair corr energy matrix:\n{}'.format(e_ij))
             str_pair_list = abs(e_ij) > e_cut
             #print('Strong pair list:\n{}'.format(str_pair_list.reshape(1,-1)))
             
             # Create Tij and Ttij
             T_ij = self.t_ijab.copy().reshape((self.no_occ * self.no_occ, self.no_vir, self.no_vir))
+            #print('T matrix [0]:\n{}'.format(T_ij[0]))
             Tt_ij = 2.0 * T_ij.copy() 
             Tt_ij -= T_ij.swapaxes(1, 2)
 
@@ -97,7 +116,7 @@ class HelperCCEnergy(object):
                 j = ij % self.no_occ
                 self.D[ij] = np.einsum('ab,bc->ac', T_ij[ij], Tt_ij[ij].T) + np.einsum('ab,bc->ac', T_ij[ij].T, Tt_ij[ij])
                 self.D[ij] *= 2.0 / (1.0 + int(i==j))
-            #print("Density matrix [0, 0]: \n{}".format(D[0]))
+            #print("Density matrix [0, 0]: \n{}".format(self.D[0]))
 
             # Diagonalize pair densities to get PNOs (Q) and occ_nos
             self.occ_nos = np.zeros((self.no_occ * self.no_occ, self.no_vir))
