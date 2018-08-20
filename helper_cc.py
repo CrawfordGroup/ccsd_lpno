@@ -14,13 +14,19 @@ class HelperCCEnergy(object):
         C = self.wfn.Ca()
         C.print_out()
         c_arr = C.to_array()
-        self.C_occ = self.wfn.Ca_subset("AO", "OCC")
+        self.C_occ = self.wfn.Ca_subset("AO", "ACTIVE_OCC")
         basis = self.wfn.basisset()
         self.no_occ = self.wfn.doccpi()[0]
         self.no_mo = self.wfn.nmo()
+        self.no_fz = self.wfn.frzcpi()[0]
+        self.no_occ -= self.no_fz
         self.eps = np.asarray(self.wfn.epsilon_a())
         self.J = self.wfn.jk().J()[0].to_array()
         self.K = self.wfn.jk().K()[0].to_array()
+
+        # Get No. of virtuals
+        self.no_vir = self.no_mo - self.no_occ - self.no_fz
+        print("Checking dimensions of orbitals: no_occ: {}\t no_fz: {}\t no_active: {}\t no_vir: {}\t total: {}".format(self.no_fz+self.no_occ, self.no_fz, self.no_occ, self.no_vir, self.no_occ+self.no_fz+self.no_vir))
 
         mints = psi4.core.MintsHelper(self.wfn.basisset())
 
@@ -35,18 +41,25 @@ class HelperCCEnergy(object):
             new_C_occ = Local.L
             nc_arr = C.to_array()
             nco_arr = new_C_occ.to_array()
-            nc_arr[:, :self.no_occ] = nco_arr[:,:]
+            print("Checking dimensions of localized active occupied:\nShape of local array: {}\nShape of C: {}\n".format(nco_arr.shape, nc_arr.shape))
+            nc_arr[:, self.no_fz:(self.no_fz + self.no_occ)] = nco_arr[:,:]
             new_C = psi4.core.Matrix.from_array(nc_arr)
-            self.MO = np.asarray(mints.mo_eri(new_C, new_C, new_C, new_C))
+            print("Shape of new MO coeff matrix: {}".format(new_C.shape))
+            self.MO_nfz = np.asarray(mints.mo_eri(new_C, new_C, new_C, new_C))
+            self.MO = self.MO_nfz[self.no_fz:, self.no_fz:, self.no_fz:, self.no_fz:]
+            print("Checking size of ERI tensor: {}".format(self.MO.shape))
+            print("Checking size of ERI_nfz tensor: {}".format(self.MO_nfz.shape))
         else:    
             self.MO = np.asarray(mints.mo_eri(C, C, C, C))
 
 
         # Build Fock matrix
         if local:
-            De = np.einsum('ui,vi->uv', new_C_occ, new_C_occ)
+            De = np.einsum('ui,vi->uv', nc_arr[:, :(self.no_fz+self.no_occ)], nc_arr[:, :(self.no_fz+self.no_occ)])
             self.F = self.H + 2.0 * np.einsum('pqrs,rs->pq', I, De) - np.einsum('prqs,rs->pq', I, De)
-            self.F = np.einsum('uj, vi, uv', new_C, new_C, self.F)
+            self.F_nfz = np.einsum('uj, vi, uv', new_C, new_C, self.F)
+            self.F = self.F_nfz[self.no_fz:, self.no_fz:]
+            print("Checking size of Fock matrix: {}".format(self.F.shape))
         else:
             self.F = self.H + 2.0 * self.J - self.K
             self.F = np.einsum('uj, vi, uv', C, C, self.F)
@@ -56,26 +69,24 @@ class HelperCCEnergy(object):
         #test = np.einsum('uj, vi, uv', C, C, test)
 
         hf_e = np.einsum('pq,pq->', self.H + self.F_ao, De)
-        print("Hartree-Fock energy: {}".format(hf_e + 8.002366450719077))
+        print("Hartree-Fock energy: {}".format(hf_e +33.35807208233505))
 
         # Need to change ERIs to physicist notation
         self.MO = self.MO.swapaxes(1, 2)
-
-        # Get No. of virtuals
-        self.no_vir = self.no_mo - self.no_occ
-        print('no_occ: {} no_vir: {}'.format(self.no_occ, self.no_vir))
+        self.MO_nfz = self.MO_nfz.swapaxes(1, 2)
 
         # Need F_occ and F_vir separate (will need F_vir for semi-canonical basis later)
         self.F_occ = self.F[:self.no_occ, :self.no_occ]
         self.F_vir = self.F[self.no_occ:, self.no_occ:]
 
         #print("MO basis F_vir:\n{}\n".format(self.F_vir))
-        #print("MO basis F_occ:\n{}\n".format(self.F_occ))
+        print("MO basis F_occ:\n{}\n".format(self.F_occ))
         #self.eps_occ = self.eps[:self.no_occ]
         #self.eps_vir = self.eps[self.no_occ:]
+        # Once localized, the occupied orbital energies are no longer
+        # equivalent to the diagonal of the Fock matrix
         self.eps_occ = np.diag(self.F_occ)
         self.eps_vir = np.diag(self.F_vir)
-
 
         # init T1s
         self.t_ia = np.zeros((self.no_occ, self.no_vir))
@@ -158,7 +169,6 @@ class HelperCCEnergy(object):
                 self.eps_pno_list.append(self.eps_pno)
                 self.L_list.append(L)
             #print('Q x L:\n{}\n'.format(Q @ L))
-
 
         self.old_e = self.corr_energy(self.t_ia, self.t_ijab)
         print('Iteration\t\t CCSD Correlation energy\t\tDifference\t\tRMS\nMP2\t\t\t {}'.format(self.old_e))
