@@ -1,6 +1,12 @@
+'''
+HelperCCEnergy class definition and function definitions
+For RHF CCSD calculations
+'''
+
 import numpy as np
 import psi4
 from ndot import ndot
+from diis import *
 
 class HelperCCEnergy(object):
     def __init__(self, local, pno_cut, rhf_wfn, memory=2):
@@ -50,7 +56,8 @@ class HelperCCEnergy(object):
             print("Checking size of ERI tensor: {}".format(self.MO.shape))
             print("Checking size of ERI_nfz tensor: {}".format(self.MO_nfz.shape))
         else:    
-            self.MO = np.asarray(mints.mo_eri(C, C, C, C))
+            self.MO_nfz = np.asarray(mints.mo_eri(C, C, C, C))
+            self.MO = self.MO_nfz[self.no_fz:, self.no_fz:, self.no_fz:, self.no_fz:]
 
 
         # Build Fock matrix
@@ -60,16 +67,17 @@ class HelperCCEnergy(object):
             self.F_nfz = np.einsum('uj, vi, uv', new_C, new_C, self.F)
             self.F = self.F_nfz[self.no_fz:, self.no_fz:]
             print("Checking size of Fock matrix: {}".format(self.F.shape))
+            self.F_ao = self.H + 2.0 * np.einsum('pqrs,rs->pq', I, De) - np.einsum('prqs,rs->pq', I, De)
+            hf_e = np.einsum('pq,pq->', self.H + self.F_ao, De)
+            print("Hartree-Fock energy: {}".format(hf_e +33.35807208233505))
         else:
             self.F = self.H + 2.0 * self.J - self.K
-            self.F = np.einsum('uj, vi, uv', C, C, self.F)
+            self.F_nfz = np.einsum('uj, vi, uv', C, C, self.F)
+            self.F = self.F_nfz[self.no_fz:, self.no_fz:]
 
-        self.F_ao = self.H + 2.0 * np.einsum('pqrs,rs->pq', I, De) - np.einsum('prqs,rs->pq', I, De)
         #test = self.H + 2.0 * self.J - self.K
         #test = np.einsum('uj, vi, uv', C, C, test)
 
-        hf_e = np.einsum('pq,pq->', self.H + self.F_ao, De)
-        print("Hartree-Fock energy: {}".format(hf_e +33.35807208233505))
 
         # Need to change ERIs to physicist notation
         self.MO = self.MO.swapaxes(1, 2)
@@ -170,8 +178,6 @@ class HelperCCEnergy(object):
                 self.L_list.append(L)
             #print('Q x L:\n{}\n'.format(Q @ L))
 
-        self.old_e = self.corr_energy(self.t_ia, self.t_ijab)
-        print('Iteration\t\t CCSD Correlation energy\t\tDifference\t\tRMS\nMP2\t\t\t {}'.format(self.old_e))
 
     # Make intermediates, Staunton:1991 eqns 3-11
     # Spin-adapted, every TEI term is modified to include
@@ -394,3 +400,33 @@ class HelperCCEnergy(object):
         E_corr += ndot('ijab,ijab->', self.MO[:no_occ, :no_occ, no_occ:, no_occ:], tmp_tau, prefactor=2.0)
         E_corr -= ndot('ijba,ijab->', self.MO[:no_occ, :no_occ, no_occ:, no_occ:], tmp_tau, prefactor=1.0)
         return E_corr
+
+    def do_CC(self, local=False, e_conv=1e-8, r_conv=1e-7, maxiter=40, max_diis=8, start_diis=0):
+        self.old_e = self.corr_energy(self.t_ia, self.t_ijab)
+        print('Iteration\t\t CCSD Correlation energy\t\tDifference\t\tRMS\nMP2\t\t\t {}'.format(self.old_e))
+    # Set up DIIS
+        diis = HelperDIIS(self.t_ia, self.t_ijab, max_diis)
+
+    # Iterate until convergence
+        for i in range(maxiter):
+            tau_t = self.make_taut(self.t_ia, self.t_ijab)
+            tau = self.make_tau(self.t_ia, self.t_ijab)
+            new_tia, new_tijab = self.update_ts(local, tau, tau_t, self.t_ia, self.t_ijab)
+            new_e = self.corr_energy(new_tia, new_tijab)
+            rms = np.linalg.norm(new_tia - self.t_ia)
+            rms += np.linalg.norm(new_tijab - self.t_ijab)
+            print('CC Iteration: {}\t\t {}\t\t{}\t\t{}\tDIIS Size: {}'.format(i, new_e, abs(new_e - self.old_e), rms, diis.diis_size))
+            if(abs(new_e - self.old_e) < e_conv and abs(rms) < r_conv):
+                print('Convergence reached.\n CCSD Correlation energy: {}\n'.format(new_e))
+                break
+            # Update error vectors for DIIS
+            diis.update_err_list(new_tia, new_tijab)
+            # Extrapolate using DIIS
+            if(i >= start_diis):
+                new_tia, new_tijab = diis.extrapolate(new_tia, new_tijab)
+
+            self.t_ia = new_tia
+            self.t_ijab = new_tijab
+            self.old_e = new_e
+
+        return new_e

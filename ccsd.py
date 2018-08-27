@@ -8,7 +8,6 @@ References used:
 
 import numpy as np
 import psi4
-from ndot import ndot
 from helper_cc import *
 import time
 
@@ -22,31 +21,15 @@ numpy_memory = 2
 
 # Set Psi4 options
 mol = psi4.geometry("""                                                 
-H
-H 1 R 
-H 1 D 2 P 
-H 3 R 1 P 2 T 
-H 3 D 4 P 1 X 
-H 5 R 3 P 4 T 
-H 5 D 6 P 3 X 
-H 7 R 5 P 6 T 
-H 7 D 8 P 5 X 
-H 9 R 7 P 8 T 
-H 9 D 10 P 7 X 
-H 11 R 9 P 10 T
-H 11 D 12 P 9 X 
-H 13 R 11 P 12 T
-
-R = 0.75
-D = 1.5 
-P = 90.0
-T = 60.0
-X = 180.0
+0 1
+O
+H 1 1.1
+H 1 1.1 2 104 
 noreorient
 symmetry c1
 """)
 
-psi4.set_options({'basis': 'aug-cc-pVDZ', 'scf_type': 'pk',
+psi4.set_options({'basis': '6-31g', 'scf_type': 'pk',
                   'freeze_core': 'false', 'e_convergence': 1e-10,
                   'd_convergence': 1e-10, 'save_jk': 'true'})
 
@@ -57,12 +40,13 @@ maxiter = 40
 compare_psi4 = False
 
 # Set for LPNO
-local=True
-#local=False
-e_cut = 1e-4
-pno_cut = 1e-6
+#local=True
+local=False
+pno_cut = 0.0
 
 # Compute RHF energy with psi4
+psi4.set_module_options('SCF', {'E_CONVERGENCE': 1e-8})
+psi4.set_module_options('SCF', {'D_CONVERGENCE': 1e-8})
 e_scf, wfn = psi4.energy('SCF', return_wfn=True)
 print('SCF energy: {}\n'.format(e_scf))
 print('Nuclear repulsion energy: {}\n'.format(mol.nuclear_repulsion_energy()))
@@ -70,22 +54,7 @@ print('Nuclear repulsion energy: {}\n'.format(mol.nuclear_repulsion_energy()))
 # Create Helper_CCenergy object
 hcc = HelperCCEnergy(local, pno_cut, wfn) 
 
-t_ia = hcc.t_ia
-t_ijab = hcc.t_ijab
+ccsd_e = hcc.do_CC(local=False, e_conv=1e-8, r_conv =1e-7, maxiter=20, start_diis=0)
 
-old_e = hcc.old_e
-# Iterate until convergence
-for i in range(maxiter):
-    tau_t = hcc.make_taut(t_ia, t_ijab)
-    tau = hcc.make_tau(t_ia, t_ijab)
-    new_tia, new_tijab = hcc.update_ts(local, tau, tau_t, t_ia, t_ijab)
-    new_e = hcc.corr_energy(new_tia, new_tijab)
-    rms = np.linalg.norm(new_tia - t_ia)
-    rms += np.linalg.norm(new_tijab - t_ijab)
-    print('{}\t\t\t {}\t\t\t{}\t\t\t{}'.format(i, new_e, abs(new_e - old_e), rms))
-    if(abs(new_e - old_e) < E_conv and abs(rms) < R_conv):
-        print('Convergence reached.\n CCSD Correlation energy: {}\n'.format(new_e))
-        break
-    t_ia = new_tia
-    t_ijab = new_tijab
-    old_e = new_e
+#psi4_ccsd_e = psi4.energy('CCSD', e_convergence=1e-8, r_convergence=1e-7)
+#print('Psi4 CCSD energy: {}'.format(psi4_ccsd_e))
