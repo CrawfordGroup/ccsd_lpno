@@ -21,13 +21,12 @@ class HelperDIIS(object):
         self.x_t2.append(t_ijab.copy())
 
         x_err1 = (self.x_t1[-1] - self.oldt1).ravel()
-        print("Error_t1:\n{}".format(x_err1))
         x_err2 = (self.x_t2[-1] - self.oldt2).ravel()
         x_err = np.concatenate((x_err1, x_err2))
 
         self.x_errs.append(x_err)
-        print("Size of x_t1: {} Size of x_t2: {} Size of x_errs: {}".format(len(self.x_t1),  len(self.x_t2), len(self.x_errs)))
-        print("Norm of x_err: {}".format(np.linalg.norm(x_err)))
+        #print("Size of x_t1: {} Size of x_t2: {} Size of x_errs: {}".format(len(self.x_t1),  len(self.x_t2), len(self.x_errs)))
+        #print("Norm of x_err: {}".format(np.linalg.norm(x_err)))
         self.oldt1 = t_ia.copy()
         self.oldt2 = t_ijab.copy()
 
