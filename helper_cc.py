@@ -396,9 +396,13 @@ class HelperCCEnergy(object):
     def corr_energy(self, t_ia, t_ijab):
         no_occ = t_ia.shape[0] 
         E_corr = ndot('ia,ia->', self.F[:no_occ, no_occ:], t_ia, prefactor=2.0)
+        one = E_corr
+        print("1 e- energy: {}".format(one))
         tmp_tau = self.make_tau(t_ia, t_ijab)
-        E_corr += ndot('ijab,ijab->', self.MO[:no_occ, :no_occ, no_occ:, no_occ:], tmp_tau, prefactor=2.0)
-        E_corr -= ndot('ijba,ijab->', self.MO[:no_occ, :no_occ, no_occ:, no_occ:], tmp_tau, prefactor=1.0)
+        two = ndot('ijab,ijab->', self.MO[:no_occ, :no_occ, no_occ:, no_occ:], tmp_tau, prefactor=2.0)
+        two -= ndot('ijba,ijab->', self.MO[:no_occ, :no_occ, no_occ:, no_occ:], tmp_tau, prefactor=1.0)
+        print("2 e- energy: {}".format(two))
+        E_corr = one + two
         return E_corr
 
     def do_CC(self, local=False, e_conv=1e-8, r_conv=1e-7, maxiter=40, max_diis=8, start_diis=0):
@@ -412,12 +416,17 @@ class HelperCCEnergy(object):
             tau_t = self.make_taut(self.t_ia, self.t_ijab)
             tau = self.make_tau(self.t_ia, self.t_ijab)
             new_tia, new_tijab = self.update_ts(local, tau, tau_t, self.t_ia, self.t_ijab)
+            if i == 0:
+                np.save('t1.npy',new_tia)
+                np.save('t2.npy',new_tijab)
             new_e = self.corr_energy(new_tia, new_tijab)
             rms = np.linalg.norm(new_tia - self.t_ia)
             rms += np.linalg.norm(new_tijab - self.t_ijab)
             print('CC Iteration: {}\t\t {}\t\t{}\t\t{}\tDIIS Size: {}'.format(i, new_e, abs(new_e - self.old_e), rms, diis.diis_size))
             if(abs(new_e - self.old_e) < e_conv and abs(rms) < r_conv):
                 print('Convergence reached.\n CCSD Correlation energy: {}\n'.format(new_e))
+                self.t_ia = new_tia
+                self.t_ijab = new_tijab
                 break
             # Update error vectors for DIIS
             diis.update_err_list(new_tia, new_tijab)
