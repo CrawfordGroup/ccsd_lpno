@@ -31,7 +31,7 @@ class HelperDIIS(object):
         self.oldt2 = t_ijab.copy()
 
     def extrapolate(self, t_ia, t_ijab):
-        print("Extrapolating...")
+        #print("Extrapolating...")
         
         # Check if diis size is too large, then delete first entry
         if len(self.x_t1) > self.max_diis:

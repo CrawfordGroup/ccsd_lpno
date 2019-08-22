@@ -27,6 +27,21 @@ class HelperHbar(object):
         self.Lmnie = self.make_Lmnie()
         self.Lamef = self.make_Lamef()
 
+        # Creating 1-body Hbar elements
+        self.Hoo = self.make_Hoo()
+        self.Hvv = self.make_Hvv()
+        self.Hov = self.make_Hov()
+
+        # Creating 2-body Hbar elements
+        self.Hoooo = self.make_Hoooo()
+        self.Hvvvv = self.make_Hvvvv()
+        self.Hvovv = self.make_Hvovv()
+        self.Hooov = self.make_Hooov()
+        self.Hovvo = self.make_Hovvo()
+        self.Hovov = self.make_Hovov()
+        self.Hvvvo = self.make_Hvvvo()
+        self.Hovoo = self.make_Hovoo()
+
     # Functions to build 1-body Hbar
     # F_mi = f_mi + t_ie f_me + (t_inef + t_ie *t_nf) * (2<mn|ef> - <mn|fe>) + t_ne (2<mn|ie> - <mn|ei>)
     def make_Hoo(self):

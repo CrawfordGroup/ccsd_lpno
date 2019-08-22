@@ -5,8 +5,8 @@ For RHF CCSD calculations
 
 import numpy as np
 import psi4
-from ndot import ndot
 from diis import *
+from opt_einsum import contract
 
 class HelperCCEnergy(object):
     def __init__(self, local, pno_cut, rhf_wfn, memory=2):
@@ -19,7 +19,7 @@ class HelperCCEnergy(object):
         # Get orbital coeffs from wfn
         C = self.wfn.Ca()
         C.print_out()
-        c_arr = C.to_array()
+        self.C_arr = C.to_array()
         self.C_occ = self.wfn.Ca_subset("AO", "ACTIVE_OCC")
         basis = self.wfn.basisset()
         self.no_occ = self.wfn.doccpi()[0]
@@ -34,11 +34,11 @@ class HelperCCEnergy(object):
         self.no_vir = self.no_mo - self.no_occ - self.no_fz
         print("Checking dimensions of orbitals: no_occ: {}\t no_fz: {}\t no_active: {}\t no_vir: {}\t total: {}".format(self.no_fz+self.no_occ, self.no_fz, self.no_occ, self.no_vir, self.no_occ+self.no_fz+self.no_vir))
 
-        mints = psi4.core.MintsHelper(self.wfn.basisset())
+        self.mints = psi4.core.MintsHelper(self.wfn.basisset())
 
-        self.H = np.asarray(mints.ao_kinetic()) + np.asarray(mints.ao_potential())
+        self.H = np.asarray(self.mints.ao_kinetic()) + np.asarray(self.mints.ao_potential())
 
-        I = mints.ao_eri()
+        I = self.mints.ao_eri()
         # Get localized occupied orbitals
         # Make MO integrals
         if local:
@@ -51,32 +51,32 @@ class HelperCCEnergy(object):
             nc_arr[:, self.no_fz:(self.no_fz + self.no_occ)] = nco_arr[:,:]
             new_C = psi4.core.Matrix.from_array(nc_arr)
             print("Shape of new MO coeff matrix: {}".format(new_C.shape))
-            self.MO_nfz = np.asarray(mints.mo_eri(new_C, new_C, new_C, new_C))
+            self.MO_nfz = np.asarray(self.mints.mo_eri(new_C, new_C, new_C, new_C))
             self.MO = self.MO_nfz[self.no_fz:, self.no_fz:, self.no_fz:, self.no_fz:]
             print("Checking size of ERI tensor: {}".format(self.MO.shape))
             print("Checking size of ERI_nfz tensor: {}".format(self.MO_nfz.shape))
         else:    
-            self.MO_nfz = np.asarray(mints.mo_eri(C, C, C, C))
+            self.MO_nfz = np.asarray(self.mints.mo_eri(C, C, C, C))
             self.MO = self.MO_nfz[self.no_fz:, self.no_fz:, self.no_fz:, self.no_fz:]
 
 
         # Build Fock matrix
         if local:
-            De = np.einsum('ui,vi->uv', nc_arr[:, :(self.no_fz+self.no_occ)], nc_arr[:, :(self.no_fz+self.no_occ)])
-            self.F = self.H + 2.0 * np.einsum('pqrs,rs->pq', I, De) - np.einsum('prqs,rs->pq', I, De)
-            self.F_nfz = np.einsum('uj, vi, uv', new_C, new_C, self.F)
+            De = contract('ui,vi->uv', nc_arr[:, :(self.no_fz+self.no_occ)], nc_arr[:, :(self.no_fz+self.no_occ)])
+            self.F = self.H + 2.0 * contract('pqrs,rs->pq', I, De) - contract('prqs,rs->pq', I, De)
+            self.F_nfz = contract('uj, vi, uv', new_C, new_C, self.F)
             self.F = self.F_nfz[self.no_fz:, self.no_fz:]
             print("Checking size of Fock matrix: {}".format(self.F.shape))
-            self.F_ao = self.H + 2.0 * np.einsum('pqrs,rs->pq', I, De) - np.einsum('prqs,rs->pq', I, De)
-            hf_e = np.einsum('pq,pq->', self.H + self.F_ao, De)
+            self.F_ao = self.H + 2.0 * contract('pqrs,rs->pq', I, De) - contract('prqs,rs->pq', I, De)
+            hf_e = contract('pq,pq->', self.H + self.F_ao, De)
             print("Hartree-Fock energy: {}".format(hf_e +33.35807208233505))
         else:
             self.F = self.H + 2.0 * self.J - self.K
-            self.F_nfz = np.einsum('uj, vi, uv', C, C, self.F)
+            self.F_nfz = contract('uj, vi, uv', C, C, self.F)
             self.F = self.F_nfz[self.no_fz:, self.no_fz:]
 
         #test = self.H + 2.0 * self.J - self.K
-        #test = np.einsum('uj, vi, uv', C, C, test)
+        #test = contract('uj, vi, uv', C, C, test)
 
 
         # Need to change ERIs to physicist notation
@@ -114,7 +114,7 @@ class HelperCCEnergy(object):
             print('Local switch on. Initializing PNOs.')
 
             # Identify weak pairs using MP2 pair corr energy
-            e_ij = ndot('ijab,ijab->ij', self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.t_ijab)
+            e_ij = contract('ijab,ijab->ij', self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.t_ijab)
             self.mp2_e  = self.corr_energy(self.t_ia, self.t_ijab)
             #print('MP2 correlation energy: {}\n'.format(self.mp2_e))
             #print('Pair corr energy matrix:\n{}'.format(e_ij))
@@ -133,7 +133,7 @@ class HelperCCEnergy(object):
             for ij in range(self.no_occ * self.no_occ):
                 i = ij // self.no_occ
                 j = ij % self.no_occ
-                self.D[ij] = np.einsum('ab,bc->ac', T_ij[ij], Tt_ij[ij].T) + np.einsum('ab,bc->ac', T_ij[ij].T, Tt_ij[ij])
+                self.D[ij] = contract('ab,bc->ac', T_ij[ij], Tt_ij[ij].T) + contract('ab,bc->ac', T_ij[ij].T, Tt_ij[ij])
                 self.D[ij] *= 2.0 / (1.0 + int(i==j))
             #print("Density matrix [0, 0]: \n{}".format(self.D[0]))
 
@@ -172,7 +172,7 @@ class HelperCCEnergy(object):
             # For each ij, F_pno is pno x pno dimension
             for ij in range(self.no_occ * self.no_occ):
                 tmp1 = self.Q_list[ij]
-                self.F_pno = np.einsum('pa,ab,bq->pq', tmp1.swapaxes(0, 1), self.F_vir, tmp1)
+                self.F_pno = contract('pa,ab,bq->pq', tmp1.swapaxes(0, 1), self.F_vir, tmp1)
                 self.eps_pno, L = np.linalg.eigh(self.F_pno)
                 self.eps_pno_list.append(self.eps_pno)
                 self.L_list.append(L)
@@ -183,75 +183,75 @@ class HelperCCEnergy(object):
     # Spin-adapted, every TEI term is modified to include
     # antisymmetrized term
     def make_taut(self, t_ia, t_ijab):
-        tau_t = t_ijab + 0.5 * (np.einsum('ia,jb->ijab', t_ia, t_ia))
+        tau_t = t_ijab + 0.5 * (contract('ia,jb->ijab', t_ia, t_ia))
         return tau_t
 
 
     def make_tau(self, t_ia, t_ijab):
-        tau = t_ijab + (np.einsum('ia,jb->ijab', t_ia, t_ia))
+        tau = t_ijab + (contract('ia,jb->ijab', t_ia, t_ia))
         return tau
 
 
     def make_Fae(self, taut, t_ia, t_ijab):
         Fae = self.F_vir.copy()
         #Fae[np.diag_indices_from(Fae)] = 0
-        Fae -= ndot('me,ma->ae', self.F[:self.no_occ, self.no_occ:], t_ia, prefactor=0.5)
-        Fae += ndot('mf,mafe->ae', t_ia, self.MO[:self.no_occ, self.no_occ:, self.no_occ:, self.no_occ:], prefactor=2.0)
-        Fae -= ndot('mf,maef->ae', t_ia, self.MO[:self.no_occ, self.no_occ:, self.no_occ:, self.no_occ:])
-        Fae -= ndot('mnaf,mnef->ae', taut, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], prefactor=2.0)
-        Fae += ndot('mnaf,mnfe->ae', taut, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
+        Fae -= 0.5 * contract('me,ma->ae', self.F[:self.no_occ, self.no_occ:], t_ia)
+        Fae += 2.0 * contract('mf,mafe->ae', t_ia, self.MO[:self.no_occ, self.no_occ:, self.no_occ:, self.no_occ:])
+        Fae -= contract('mf,maef->ae', t_ia, self.MO[:self.no_occ, self.no_occ:, self.no_occ:, self.no_occ:])
+        Fae -= 2.0 * contract('mnaf,mnef->ae', taut, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
+        Fae += contract('mnaf,mnfe->ae', taut, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
         return Fae
 
 
     def make_Fmi(self, taut, t_ia, t_ijab):
         Fmi = self.F_occ.copy()
         #Fmi[np.diag_indices_from(Fmi)] = 0
-        Fmi += ndot('ie,me->mi', t_ia, self.F[:self.no_occ, self.no_occ:], prefactor=0.5)
-        Fmi += ndot('ne,mnie->mi', t_ia, self.MO[:self.no_occ, :self.no_occ, :self.no_occ, self.no_occ:], prefactor=2.0)
-        Fmi -= ndot('ne,mnei->mi', t_ia, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, :self.no_occ])
-        Fmi += ndot('inef,mnef->mi', taut, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], prefactor=2.0)
-        Fmi -= ndot('inef,mnfe->mi', taut, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
+        Fmi += 0.5 * contract('ie,me->mi', t_ia, self.F[:self.no_occ, self.no_occ:])
+        Fmi += 2.0 * contract('ne,mnie->mi', t_ia, self.MO[:self.no_occ, :self.no_occ, :self.no_occ, self.no_occ:])
+        Fmi -= contract('ne,mnei->mi', t_ia, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, :self.no_occ])
+        Fmi += 2.0 * contract('inef,mnef->mi', taut, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
+        Fmi -= contract('inef,mnfe->mi', taut, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
         return Fmi
 
 
     def make_Fme(self, t_ia, t_ijab):
         Fme = self.F[:self.no_occ, self.no_occ:].copy()
-        Fme += ndot('nf,mnef->me', t_ia, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], prefactor = 2.0)
-        Fme -= ndot('nf,mnfe->me', t_ia, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
+        Fme += 2.0 * contract('nf,mnef->me', t_ia, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
+        Fme -= contract('nf,mnfe->me', t_ia, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
         return Fme
 
 
     def make_Wmnij(self, tau, t_ia, t_ijab):
         Wmnij = self.MO[:self.no_occ, :self.no_occ, :self.no_occ, :self.no_occ].copy()
-        Wmnij += ndot('je,mnie->mnij', t_ia, self.MO[:self.no_occ, :self.no_occ, :self.no_occ, self.no_occ:])
-        Wmnij += ndot('ie,mnej->mnij', t_ia, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, :self.no_occ])
-        Wmnij += ndot('ijef,mnef->mnij', tau, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
+        Wmnij += contract('je,mnie->mnij', t_ia, self.MO[:self.no_occ, :self.no_occ, :self.no_occ, self.no_occ:])
+        Wmnij += contract('ie,mnej->mnij', t_ia, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, :self.no_occ])
+        Wmnij += contract('ijef,mnef->mnij', tau, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
         return Wmnij
 
 
     def make_Wmbej(self, t_ia, t_ijab):
         Wmbej = self.MO[:self.no_occ, self.no_occ:, self.no_occ:, :self.no_occ].copy()
-        Wmbej += ndot('jf,mbef->mbej', t_ia, self.MO[:self.no_occ, self.no_occ:, self.no_occ:, self.no_occ:])
-        Wmbej -= ndot('nb,mnej->mbej', t_ia, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, :self.no_occ])
-        tmp = 0.5 * t_ijab.copy() + np.einsum('jf,nb->jnfb', t_ia, t_ia)
-        Wmbej -= ndot('jnfb,mnef->mbej', tmp, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
-        Wmbej += ndot('njfb,mnef->mbej', t_ijab, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
-        Wmbej -= ndot('njfb,mnfe->mbej', t_ijab, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], prefactor=0.5)
+        Wmbej += contract('jf,mbef->mbej', t_ia, self.MO[:self.no_occ, self.no_occ:, self.no_occ:, self.no_occ:])
+        Wmbej -= contract('nb,mnej->mbej', t_ia, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, :self.no_occ])
+        tmp = 0.5 * t_ijab.copy() + contract('jf,nb->jnfb', t_ia, t_ia)
+        Wmbej -= contract('jnfb,mnef->mbej', tmp, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
+        Wmbej += contract('njfb,mnef->mbej', t_ijab, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
+        Wmbej -= 0.5 * contract('njfb,mnfe->mbej', t_ijab, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
         return Wmbej
 
 
     def make_Wmbje(self, t_ia, t_ijab):
         Wmbje = -1.0 * self.MO[:self.no_occ, self.no_occ:, :self.no_occ, self.no_occ:].copy()
-        Wmbje -= ndot('jf,mbfe->mbje', t_ia, self.MO[:self.no_occ, self.no_occ:, self.no_occ:, self.no_occ:])
-        Wmbje += ndot('nb,mnje->mbje', t_ia, self.MO[:self.no_occ, :self.no_occ, :self.no_occ, self.no_occ:])
-        tmp = 0.5 * t_ijab.copy() + np.einsum('jf,nb->jnfb', t_ia, t_ia)
-        Wmbje += ndot('jnfb,mnfe->mbje', tmp, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
+        Wmbje -= contract('jf,mbfe->mbje', t_ia, self.MO[:self.no_occ, self.no_occ:, self.no_occ:, self.no_occ:])
+        Wmbje += contract('nb,mnje->mbje', t_ia, self.MO[:self.no_occ, :self.no_occ, :self.no_occ, self.no_occ:])
+        tmp = 0.5 * t_ijab.copy() + contract('jf,nb->jnfb', t_ia, t_ia)
+        Wmbje += contract('jnfb,mnfe->mbje', tmp, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
         return Wmbje
 
 
     def make_Zmbij(self, tau):
         Zmbij = 0
-        Zmbij += ndot('mbef,ijef->mbij', self.MO[:self.no_occ, self.no_occ:, self.no_occ:, self.no_occ:], tau)
+        Zmbij += contract('mbef,ijef->mbij', self.MO[:self.no_occ, self.no_occ:, self.no_occ:, self.no_occ:], tau)
         return Zmbij
 
 
@@ -271,70 +271,70 @@ class HelperCCEnergy(object):
 
         # Create residual T1s
         Ria = self.F[:no_occ, no_occ:].copy()
-        Ria += ndot('ie,ae->ia', t_ia, Fae)
-        Ria -= ndot('ma,mi->ia', t_ia, Fmi)
-        Ria += ndot('imae,me->ia', t_ijab, Fme, prefactor=2.0)
-        Ria -= ndot('imea,me->ia', t_ijab, Fme)
-        Ria -= ndot('nf,naif->ia', t_ia, self.MO[:no_occ, no_occ:, :no_occ, no_occ:])
-        Ria += ndot('nf,nafi->ia', t_ia, self.MO[:no_occ, no_occ:, no_occ:, :no_occ], prefactor=2.0)
-        Ria += ndot('mief,maef->ia', t_ijab, self.MO[:no_occ, no_occ:, no_occ:, no_occ:], prefactor=2.0)
-        Ria -= ndot('mife,maef->ia', t_ijab, self.MO[:no_occ, no_occ:, no_occ:, no_occ:])
-        Ria -= ndot('mnae,nmei->ia', t_ijab, self.MO[:no_occ, :no_occ, no_occ:, :no_occ], prefactor=2.0)
-        Ria += ndot('mnae,nmie->ia', t_ijab, self.MO[:no_occ, :no_occ, :no_occ, no_occ:])
+        Ria += contract('ie,ae->ia', t_ia, Fae)
+        Ria -= contract('ma,mi->ia', t_ia, Fmi)
+        Ria += 2.0 * contract('imae,me->ia', t_ijab, Fme)
+        Ria -= contract('imea,me->ia', t_ijab, Fme)
+        Ria -= contract('nf,naif->ia', t_ia, self.MO[:no_occ, no_occ:, :no_occ, no_occ:])
+        Ria += 2.0 * contract('nf,nafi->ia', t_ia, self.MO[:no_occ, no_occ:, no_occ:, :no_occ])
+        Ria += 2.0 * contract('mief,maef->ia', t_ijab, self.MO[:no_occ, no_occ:, no_occ:, no_occ:])
+        Ria -= contract('mife,maef->ia', t_ijab, self.MO[:no_occ, no_occ:, no_occ:, no_occ:])
+        Ria -= 2.0 * contract('mnae,nmei->ia', t_ijab, self.MO[:no_occ, :no_occ, no_occ:, :no_occ])
+        Ria += contract('mnae,nmie->ia', t_ijab, self.MO[:no_occ, :no_occ, :no_occ, no_occ:])
 
         # Create residual T2s
         Rijab = self.MO[:no_occ, :no_occ, no_occ:, no_occ:].copy()
         # Term 2
-        tmp = ndot('ijae,be->ijab', t_ijab, Fae)
+        tmp = contract('ijae,be->ijab', t_ijab, Fae)
         Rijab += tmp 
         Rijab += tmp.swapaxes(0, 1).swapaxes(2, 3)
 
-        tmp = 0.5 * np.einsum('ijae,mb,me->ijab', t_ijab, t_ia, Fme)
+        tmp = 0.5 * contract('ijae,mb,me->ijab', t_ijab, t_ia, Fme)
         Rijab -= tmp
         Rijab -= tmp.swapaxes(0, 1).swapaxes(2, 3)
         # Term 3
-        tmp = ndot('imab,mj->ijab', t_ijab, Fmi)
+        tmp = contract('imab,mj->ijab', t_ijab, Fmi)
         Rijab -= tmp
         Rijab -= tmp.swapaxes(0, 1).swapaxes(2, 3)
 
-        tmp = 0.5 * np.einsum('imab,je,me->ijab', t_ijab, t_ia, Fme)
+        tmp = 0.5 * contract('imab,je,me->ijab', t_ijab, t_ia, Fme)
         Rijab -= tmp 
         Rijab -= tmp.swapaxes(0, 1).swapaxes(2, 3)
         # Term 4
-        Rijab += ndot('mnab,mnij->ijab', tau, Wmnij)
+        Rijab += contract('mnab,mnij->ijab', tau, Wmnij)
         # Term 5
-        Rijab += ndot('ijef,abef->ijab', tau, self.MO[no_occ:, no_occ:, no_occ:, no_occ:])
+        Rijab += contract('ijef,abef->ijab', tau, self.MO[no_occ:, no_occ:, no_occ:, no_occ:])
         # Extra term since Wabef is not formed
-        tmp = ndot('ma,mbij->ijab', t_ia, Zmbij)
+        tmp = contract('ma,mbij->ijab', t_ia, Zmbij)
         Rijab -= tmp
         Rijab -= tmp.swapaxes(0, 1).swapaxes(2, 3)
         # Term 6 # 1
-        tmp = ndot('imae,mbej->ijab', t_ijab, Wmbej)
-        tmp -= ndot('imea,mbej->ijab', t_ijab, Wmbej)
+        tmp = contract('imae,mbej->ijab', t_ijab, Wmbej)
+        tmp -= contract('imea,mbej->ijab', t_ijab, Wmbej)
         Rijab += tmp
         Rijab += tmp.swapaxes(0, 1).swapaxes(2, 3)
-        tmp1 = np.einsum('ie,ma,mbej->ijab', t_ia, t_ia, self.MO[:no_occ, no_occ:, no_occ:, :no_occ])
+        tmp1 = contract('ie,ma,mbej->ijab', t_ia, t_ia, self.MO[:no_occ, no_occ:, no_occ:, :no_occ])
         Rijab -= tmp1
         Rijab -= tmp1.swapaxes(0, 1).swapaxes(2, 3)
         # Term 6 # 2
-        tmp = ndot('imae,mbej->ijab', t_ijab, Wmbej)
-        tmp += ndot('imae,mbje->ijab', t_ijab, Wmbje)
+        tmp = contract('imae,mbej->ijab', t_ijab, Wmbej)
+        tmp += contract('imae,mbje->ijab', t_ijab, Wmbje)
         Rijab += tmp
         Rijab += tmp.swapaxes(0, 1).swapaxes(2, 3)
         # Term 6 # 3
-        tmp = ndot('mjae,mbie->ijab', t_ijab, Wmbje)
+        tmp = contract('mjae,mbie->ijab', t_ijab, Wmbje)
         Rijab += tmp
         Rijab += tmp.swapaxes(0, 1).swapaxes(2, 3)
-        tmp1 = np.einsum('ie,mb,maje->ijab', t_ia, t_ia, self.MO[:no_occ, no_occ:, :no_occ, no_occ:])
+        tmp1 = contract('ie,mb,maje->ijab', t_ia, t_ia, self.MO[:no_occ, no_occ:, :no_occ, no_occ:])
         Rijab -= tmp1
         Rijab -= tmp1.swapaxes(0, 1).swapaxes(2, 3)
 
         # Term 7
-        tmp = ndot('ie,abej->ijab', t_ia, self.MO[no_occ:, no_occ:, no_occ:, :no_occ])
+        tmp = contract('ie,abej->ijab', t_ia, self.MO[no_occ:, no_occ:, no_occ:, :no_occ])
         Rijab += tmp
         Rijab += tmp.swapaxes(0, 1).swapaxes(2, 3)
         # Term 8
-        tmp = ndot('ma,mbij->ijab', t_ia, self.MO[:no_occ, no_occ:, :no_occ, :no_occ])
+        tmp = contract('ma,mbij->ijab', t_ia, self.MO[:no_occ, no_occ:, :no_occ, :no_occ])
         Rijab -= tmp
         Rijab -= tmp.swapaxes(0, 1).swapaxes(2, 3)
 
@@ -348,9 +348,9 @@ class HelperCCEnergy(object):
                 tmp_Q = Q_list[i*no_occ+i]
                 tmp_L = L_list[i*no_occ+i]
                 # Transform Rs using Q
-                R1Q = np.einsum('b,ba->a', Ria[i], tmp_Q)
+                R1Q = contract('b,ba->a', Ria[i], tmp_Q)
                 # Transform RQs using L
-                R1QL = np.einsum('b,ba->a', R1Q, tmp_L)
+                R1QL = contract('b,ba->a', R1Q, tmp_L)
                 tmp3 = self.eps_pno_list[i*no_occ+i]
                 # Use vir orb. energies from semicanonical
                 d1_QL = np.zeros(tmp3.shape[0])
@@ -358,19 +358,19 @@ class HelperCCEnergy(object):
                     d1_QL[a] = self.F_occ[i, i] - tmp3[a]
                 T1QL = R1QL / d1_QL
                 # Back transform to TQs
-                T1Q = np.einsum('ab,b->a', tmp_L, T1QL)
+                T1Q = contract('ab,b->a', tmp_L, T1QL)
                 # Back transform to Ts
-                new_tia[i] += np.einsum('ab,b->a', tmp_Q, T1Q)
+                new_tia[i] += contract('ab,b->a', tmp_Q, T1Q)
             '''
             # Update T2s
             new_tijab = t_ijab.copy()
             for ij in range(no_occ * no_occ):
                 tmp1 = self.Q_list[ij]
                 # Transform Rs using Q
-                R2Q = np.einsum('ac,ab,bd->cd', tmp1, Rijab[ij // no_occ, ij % no_occ], tmp1)
+                R2Q = contract('ac,ab,bd->cd', tmp1, Rijab[ij // no_occ, ij % no_occ], tmp1)
                 # Transform RQs using L
                 tmp2 = self.L_list[ij]
-                R2QL = np.einsum('ac,ab,bd->cd', tmp2, R2Q, tmp2)
+                R2QL = contract('ac,ab,bd->cd', tmp2, R2Q, tmp2)
                 # Use vir orb. energies from semicanonical
                 tmp3 = self.eps_pno_list[ij]
                 d2_QL = np.zeros((tmp3.shape[0], tmp3.shape[0]))
@@ -380,9 +380,9 @@ class HelperCCEnergy(object):
                 #print('denom in semi-canonical PNO basis:\n{}\n'.format(d_QL.shape))
                 T2QL = R2QL / d2_QL
                 # Back transform to TQs
-                T2Q = np.einsum('ca,ab,db->cd', tmp2, T2QL, tmp2)
+                T2Q = contract('ca,ab,db->cd', tmp2, T2QL, tmp2)
                 # Back transform to Ts
-                new_tijab[ij // no_occ, ij % no_occ] += np.einsum('ca,ab,db->cd', tmp1, T2Q, tmp1)
+                new_tijab[ij // no_occ, ij % no_occ] += contract('ca,ab,db->cd', tmp1, T2Q, tmp1)
         else:
             # Apply denominators
             new_tia =  t_ia.copy() 
@@ -395,19 +395,15 @@ class HelperCCEnergy(object):
     # Compute CCSD correlation energy
     def corr_energy(self, t_ia, t_ijab):
         no_occ = t_ia.shape[0] 
-        E_corr = ndot('ia,ia->', self.F[:no_occ, no_occ:], t_ia, prefactor=2.0)
-        one = E_corr
-        print("1 e- energy: {}".format(one))
+        E_corr = 2.0 * contract('ia,ia->', self.F[:no_occ, no_occ:], t_ia)
         tmp_tau = self.make_tau(t_ia, t_ijab)
-        two = ndot('ijab,ijab->', self.MO[:no_occ, :no_occ, no_occ:, no_occ:], tmp_tau, prefactor=2.0)
-        two -= ndot('ijba,ijab->', self.MO[:no_occ, :no_occ, no_occ:, no_occ:], tmp_tau, prefactor=1.0)
-        print("2 e- energy: {}".format(two))
-        E_corr = one + two
+        E_corr += 2.0 * contract('ijab,ijab->', self.MO[:no_occ, :no_occ, no_occ:, no_occ:], tmp_tau)
+        E_corr -= contract('ijba,ijab->', self.MO[:no_occ, :no_occ, no_occ:, no_occ:], tmp_tau)
         return E_corr
 
     def do_CC(self, local=False, e_conv=1e-8, r_conv=1e-7, maxiter=40, max_diis=8, start_diis=0):
         self.old_e = self.corr_energy(self.t_ia, self.t_ijab)
-        print('Iteration\t\t CCSD Correlation energy\t\tDifference\t\tRMS\nMP2\t\t\t {}'.format(self.old_e))
+        print('Iteration\t\t Correlation energy\tDifference\tRMS\nMP2\t\t\t {}'.format(self.old_e))
     # Set up DIIS
         diis = HelperDIIS(self.t_ia, self.t_ijab, max_diis)
 
@@ -416,13 +412,10 @@ class HelperCCEnergy(object):
             tau_t = self.make_taut(self.t_ia, self.t_ijab)
             tau = self.make_tau(self.t_ia, self.t_ijab)
             new_tia, new_tijab = self.update_ts(local, tau, tau_t, self.t_ia, self.t_ijab)
-            if i == 0:
-                np.save('t1.npy',new_tia)
-                np.save('t2.npy',new_tijab)
             new_e = self.corr_energy(new_tia, new_tijab)
             rms = np.linalg.norm(new_tia - self.t_ia)
             rms += np.linalg.norm(new_tijab - self.t_ijab)
-            print('CC Iteration: {}\t\t {}\t\t{}\t\t{}\tDIIS Size: {}'.format(i, new_e, abs(new_e - self.old_e), rms, diis.diis_size))
+            print('CC Iteration: {:3d}\t {:2.12f}\t{:1.12f}\t{:1.12f}\tDIIS Size: {}'.format(i, new_e, abs(new_e - self.old_e), rms, diis.diis_size))
             if(abs(new_e - self.old_e) < e_conv and abs(rms) < r_conv):
                 print('Convergence reached.\n CCSD Correlation energy: {}\n'.format(new_e))
                 self.t_ia = new_tia
