@@ -1,0 +1,5 @@
+# Numpy arrays to compare to Psi4Numpy code
+ccsd_lpno/*.npy
+
+# Pycache
+ccsd_lpno/__pycache__/*
