@@ -6,7 +6,7 @@ After completing a CCSD calculation and building Hbar matrix elements
 
 import numpy as np
 import psi4
-from diis import *
+from .diis import *
 from opt_einsum import contract
 
 class HelperLambda(object):

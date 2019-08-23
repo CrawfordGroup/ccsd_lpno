@@ -10,7 +10,7 @@ building Hbar matrix elements, lambdas
 import numpy as np
 import psi4
 from opt_einsum import contract
-from diis import *
+from .diis import *
 
 class HelperPert(object):
     def __init__(self, ccsd, hbar, lda, A, omega):

@@ -1,5 +1,5 @@
 '''
-Computing the CCSD correlation energy using an RHF reference
+Computing the CCSD-LR dipole polarizability  using an RHF reference
 References used:
     - http://github.com/CrawfordGroup/ProgrammingProjects
     - Stanton:1991:4334
@@ -20,7 +20,6 @@ psi4.core.clean()
 psi4.set_memory('2 GB')
 psi4.core.set_output_file('output.dat', False)
 np.set_printoptions(precision=12, threshold=np.inf, linewidth=200, suppress=True)
-numpy_memory = 2
 
 # Set Psi4 options
 mol = psi4.geometry("""                                                 
@@ -46,6 +45,9 @@ compare_psi4 = False
 #local=True
 local=False
 pno_cut = 0.0
+
+# Set for polarizability calculation
+omega_nm = 589.0
 
 # Compute RHF energy with psi4
 psi4.set_module_options('SCF', {'E_CONVERGENCE': 1e-10})
@@ -95,7 +97,6 @@ pseudo_e = lda.iterate(e_conv=1e-8, r_conv =1e-10, maxiter=30)
 #print('l2 matches:\t\t{}'.format(np.allclose(lambda2['arr_0'], lda.l_ijab, atol=1e-07)))
 
 # Set the frequency in hartrees
-omega_nm = 589.0
 omega = (pc.c * pc.h * 1e9) / (pc.hartree2J * omega_nm)
 
 # Get the perturbation A for Xs and Ys

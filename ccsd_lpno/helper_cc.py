@@ -5,7 +5,8 @@ For RHF CCSD calculations
 
 import numpy as np
 import psi4
-from diis import *
+from . import diis
+from .diis import *
 from opt_einsum import contract
 
 class HelperCCEnergy(object):
