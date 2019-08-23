@@ -3,3 +3,5 @@ ccsd_lpno/*.npy
 
 # Pycache
 ccsd_lpno/__pycache__/*
+
+*.pyc
