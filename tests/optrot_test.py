@@ -10,23 +10,21 @@ import numpy as np
 import psi4
 import ccsd_lpno
 
-
-def test_polar():
+def test_optrot():
     psi4.core.clean()
 
     # Set memory
     psi4.set_memory('2 GB')
-    psi4.core.set_output_file('test_polar_out.dat', False)
+    psi4.core.set_output_file('test_optrot_out.dat', False)
     np.set_printoptions(precision=12, threshold=np.inf, linewidth=200, suppress=True)
 
     # Set Psi4 options
     mol = psi4.geometry("""                                                 
-    0 1
-    O
-    H 1 1.1
-    H 1 1.1 2 104 
-    noreorient
-    symmetry c1
+     O     -0.028962160801    -0.694396279686    -0.049338350190                                                                  
+     O      0.028962160801     0.694396279686    -0.049338350190                                                                  
+     H      0.350498145881    -0.910645626300     0.783035421467                                                                  
+     H     -0.350498145881     0.910645626300     0.783035421467                                                                  
+    symmetry c1        
     """)
 
     psi4.set_options({'basis': 'sto-3g', 'scf_type': 'pk',
@@ -56,13 +54,18 @@ def test_polar():
     print('Nuclear repulsion energy: {}\n'.format(mol.nuclear_repulsion_energy()))
 
     # Create Helper_CCenergy object
-    polarizability = ccsd_lpno.do_linresp(local, pno_cut, wfn, omega_nm, mol) 
+    optrot_lg = ccsd_lpno.do_linresp(local, pno_cut, wfn, omega_nm, mol, method='optrot', gauge='length') 
+    optrot_mvg = ccsd_lpno.do_linresp(local, pno_cut, wfn, omega_nm, mol, method='optrot', gauge='velocity') 
 
     # Comaprison with Psi4
     psi4.set_options({'d_convergence': 1e-10})
     psi4.set_options({'e_convergence': 1e-10})
     psi4.set_options({'r_convergence': 1e-10})
-    psi4.set_options({'omega': [589, 'nm']})
-    psi4.properties('ccsd', properties=['polarizability'])
-    psi4.compare_values(polarizability, psi4.core.variable("CCSD DIPOLE POLARIZABILITY @ 589NM"),  6, "CCSD Isotropic Dipole Polarizability @ 589 nm (Length Gauge)") #TEST
+    psi4.set_options({'omega': [589, 'nm'],
+                      'gauge': 'both'})  
+    psi4.properties('ccsd', properties=['rotation'])
+    psi4.compare_values(optrot_lg, psi4.core.variable("CCSD SPECIFIC ROTATION (LEN) @ 589NM"), \
+     5, "CCSD SPECIFIC ROTATION (LENGTH GAUGE) 589 nm") #TEST
+    psi4.compare_values(optrot_mvg, psi4.core.variable("CCSD SPECIFIC ROTATION (MVG) @ 589NM"), \
+     5, "CCSD SPECIFIC ROTATION (MODIFIED VELOCITY GAUGE) 589 nm") #TEST
 
