@@ -5,3 +5,7 @@ ccsd_lpno/*.npy
 ccsd_lpno/__pycache__/*
 
 *.pyc
+
+timer.dat
+
+tests/timer.dat
