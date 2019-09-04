@@ -39,39 +39,17 @@ class HelperCCEnergy(object):
 
         self.H = np.asarray(self.mints.ao_kinetic()) + np.asarray(self.mints.ao_potential())
 
-        I = self.mints.ao_eri()
+        self.I = self.mints.ao_eri()
         # Get localized occupied orbitals
         # Make MO integrals
+        # Build Fock matrix
         if local:
-            Local = psi4.core.Localizer.build("BOYS", basis, self.C_occ)
-            Local.localize()
-            new_C_occ = Local.L
-            nc_arr = C.to_array()
-            nco_arr = new_C_occ.to_array()
-            print("Checking dimensions of localized active occupied:\nShape of local array: {}\nShape of C: {}\n".format(nco_arr.shape, nc_arr.shape))
-            nc_arr[:, self.no_fz:(self.no_fz + self.no_occ)] = nco_arr[:,:]
-            new_C = psi4.core.Matrix.from_array(nc_arr)
-            print("Shape of new MO coeff matrix: {}".format(new_C.shape))
-            self.MO_nfz = np.asarray(self.mints.mo_eri(new_C, new_C, new_C, new_C))
-            self.MO = self.MO_nfz[self.no_fz:, self.no_fz:, self.no_fz:, self.no_fz:]
-            print("Checking size of ERI tensor: {}".format(self.MO.shape))
-            print("Checking size of ERI_nfz tensor: {}".format(self.MO_nfz.shape))
+            local = HelperLocal(ccsd)
+            self.MO = local.MO
+            self.F = local.F
         else:    
             self.MO_nfz = np.asarray(self.mints.mo_eri(C, C, C, C))
             self.MO = self.MO_nfz[self.no_fz:, self.no_fz:, self.no_fz:, self.no_fz:]
-
-
-        # Build Fock matrix
-        if local:
-            De = contract('ui,vi->uv', nc_arr[:, :(self.no_fz+self.no_occ)], nc_arr[:, :(self.no_fz+self.no_occ)])
-            self.F = self.H + 2.0 * contract('pqrs,rs->pq', I, De) - contract('prqs,rs->pq', I, De)
-            self.F_nfz = contract('uj, vi, uv', new_C, new_C, self.F)
-            self.F = self.F_nfz[self.no_fz:, self.no_fz:]
-            print("Checking size of Fock matrix: {}".format(self.F.shape))
-            self.F_ao = self.H + 2.0 * contract('pqrs,rs->pq', I, De) - contract('prqs,rs->pq', I, De)
-            hf_e = contract('pq,pq->', self.H + self.F_ao, De)
-            print("Hartree-Fock energy: {}".format(hf_e +33.35807208233505))
-        else:
             self.F = self.H + 2.0 * self.J - self.K
             self.F_nfz = contract('uj, vi, uv', C, C, self.F)
             self.F = self.F_nfz[self.no_fz:, self.no_fz:]
@@ -79,10 +57,8 @@ class HelperCCEnergy(object):
         #test = self.H + 2.0 * self.J - self.K
         #test = contract('uj, vi, uv', C, C, test)
 
-
         # Need to change ERIs to physicist notation
         self.MO = self.MO.swapaxes(1, 2)
-        self.MO_nfz = self.MO_nfz.swapaxes(1, 2)
 
         # Need F_occ and F_vir separate (will need F_vir for semi-canonical basis later)
         self.F_occ = self.F[:self.no_occ, :self.no_occ]
@@ -90,8 +66,7 @@ class HelperCCEnergy(object):
 
         #print("MO basis F_vir:\n{}\n".format(self.F_vir))
         print("MO basis F_occ:\n{}\n".format(self.F_occ))
-        #self.eps_occ = self.eps[:self.no_occ]
-        #self.eps_vir = self.eps[self.no_occ:]
+
         # Once localized, the occupied orbital energies are no longer
         # equivalent to the diagonal of the Fock matrix
         self.eps_occ = np.diag(self.F_occ)
@@ -113,7 +88,7 @@ class HelperCCEnergy(object):
         if local:
             # Initialize PNOs
             print('Local switch on. Initializing PNOs.')
-
+            
             # Identify weak pairs using MP2 pair corr energy
             e_ij = contract('ijab,ijab->ij', self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.t_ijab)
             self.mp2_e  = self.corr_energy(self.t_ia, self.t_ijab)
