@@ -21,6 +21,7 @@ class HelperPert(object):
         self.t_ijab = ccsd.t_ijab
         self.no_occ = ccsd.no_occ
         self.no_vir = ccsd.no_vir
+        self.F_occ = ccsd.F_occ
         
         # L intermediates
         self.Lmnef = hbar.Lmnef
@@ -139,7 +140,7 @@ class HelperPert(object):
         Avvoo -= contract('mjab,mi->abij', self.t_ijab, self.make_Aoo())
         return Avvoo
 
-    def update_xs(self, x_ia, x_ijab):
+    def update_xs(self, x_ia, x_ijab, local=None):
     # X1 equations
         r_ia = self.make_Avo().swapaxes(0,1).copy()
         r_ia -= self.omega * x_ia.copy()
@@ -174,7 +175,10 @@ class HelperPert(object):
         new_xijab = x_ijab.copy()
 
         new_xia += r_ia/self.D_ia
-        temp = r_ijab/self.D_ijab
+        if local:
+            temp = local.increment(r_ijab, self.F_occ)
+        else:    
+            temp = r_ijab/self.D_ijab
         new_xijab += temp + temp.swapaxes(0,1).swapaxes(2,3)
         
         return new_xia, new_xijab
@@ -295,7 +299,7 @@ class HelperPert(object):
 
         return r_ia, r_ijab
 
-    def update_ys(self, y_ia, y_ijab):
+    def update_ys(self, y_ia, y_ijab, local=None):
     # Y1 equations, homogeneous terms
 
         # y_ia = 2 * Hov + y_ie H_ea - y_ma H_im + y_me (2 * H_ieam - H_iema) + y_imef H_efam - y_mnae Hiemn
@@ -343,7 +347,10 @@ class HelperPert(object):
         new_yia = y_ia.copy()
         new_yia += r_ia / self.D_ia
         new_yijab = y_ijab.copy()
-        temp = r_ijab / self.D_ijab
+        if local:
+            temp = local.increment(r_ijab, self.F_occ)
+        else:
+            temp = r_ijab / self.D_ijab
         new_yijab += temp + temp.swapaxes(0,1).swapaxes(2,3)
         #print("Checking y2 here: \n{}".format(new_yijab[0]))
 
@@ -361,7 +368,7 @@ class HelperPert(object):
         return -2.0 * (polar1 + polar2)
 
     # iterate until convergence
-    def iterate(self, hand, r_conv=1e-7, maxiter=100, max_diis=8, start_diis=0): 
+    def iterate(self, hand, local=None, r_conv=1e-7, maxiter=100, max_diis=8, start_diis=0): 
         print('Iteration\t\t Pseudoresponse\t\tRMS')
         if hand == 'right':
             new_presp = self.pseudo_response(self.x_ia, self.x_ijab)
@@ -378,12 +385,12 @@ class HelperPert(object):
         print('CCPert {} Iteration: 0\t {:2.12f}'.format(hand, new_presp))
         for i in range(maxiter):
             if hand == 'right':
-                new_xia, new_xijab = self.update_xs(self.x_ia, self.x_ijab)
+                new_xia, new_xijab = self.update_xs(self.x_ia, self.x_ijab, local=local)
                 new_presp = self.pseudo_response(new_xia, new_xijab)
                 rms = np.linalg.norm(new_xia - self.x_ia)
                 rms += np.linalg.norm(new_xijab - self.x_ijab)
             else:
-                new_yia, new_yijab = self.update_ys(self.y_ia, self.y_ijab)
+                new_yia, new_yijab = self.update_ys(self.y_ia, self.y_ijab, local=local)
                 new_presp = self.pseudo_response(new_yia, new_yijab)
                 rms = np.linalg.norm(new_yia - self.y_ia)
                 rms += np.linalg.norm(new_yijab - self.y_ijab)

@@ -10,10 +10,8 @@ References:
 
 import numpy as np
 import psi4
-from helper_cc import *
-from cc_hbar import *
-from cc_lambda import *
-from cc_pert import *
+import ccsd_lpno
+from local import *
 from psi4 import constants as pc 
 
 psi4.core.clean()
@@ -43,22 +41,25 @@ e_scf, wfn = psi4.energy('SCF', return_wfn=True)
 print('SCF energy: {}\n'.format(e_scf))
 print('Nuclear repulsion energy: {}\n'.format(mol.nuclear_repulsion_energy()))
 
-local=False
+no_vir = wfn.nmo() - wfn.doccpi()[0] - wfn.frzcpi()[0]
+
+local = HelperLocal(wfn.doccpi()[0], no_vir)
+pert=True
 pno_cut = 0.0
 
 # Create Helper_CCenergy object
-hcc = HelperCCEnergy(local, pno_cut, wfn) 
-ccsd_e = hcc.do_CC(local=False, e_conv=1e-10, r_conv =1e-10, maxiter=40, start_diis=0)
+hcc = ccsd_lpno.HelperCCEnergy(wfn, local=local, pert=pert, pno_cut=pno_cut) 
+ccsd_e = hcc.do_CC(local=local, e_conv=1e-10, r_conv =1e-10, maxiter=40, start_diis=0)
 
 print('CCSD correlation energy: {}'.format(ccsd_e))
 
 # Create HelperCCHbar object
-hbar = HelperHbar(hcc, ccsd_e)
+hbar = ccsd_lpno.HelperHbar(hcc, ccsd_e)
 print('Finished building Hbar matrix elements.')
 
 # Create HelperLamdba object
-lda = HelperLambda(hcc, hbar)
-pseudo_e = lda.iterate(e_conv=1e-8, r_conv =1e-10, maxiter=30)
+lda = ccsd_lpno.HelperLambda(hcc, hbar)
+pseudo_e = lda.iterate(local=local, e_conv=1e-8, r_conv =1e-10, maxiter=30)
 
 # Set the frequency in hartrees
 omega_nm = 589.0
@@ -87,21 +88,21 @@ beta_new = {}
 i=0
 for string in ['X', 'Y', 'Z']:
     Mu[string] = np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(dipole_array[i]))
-    pert1[string] = HelperPert(hcc, hbar, lda, Mu[string], omega)
+    pert1[string] = ccsd_lpno.HelperPert(hcc, hbar, lda, Mu[string], omega)
     L[string] = -0.5 * np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(angular_momentum[i]))
-    pert2[string] = HelperPert(hcc, hbar, lda, L[string], omega)
+    pert2[string] = ccsd_lpno.HelperPert(hcc, hbar, lda, L[string], omega)
 
     i+=1
     for hand in ['right', 'left']:
-        pseudoresponse1 = pert1[string].iterate(hand, r_conv=1e-10)
+        pseudoresponse1 = pert1[string].iterate(hand, r_conv=1e-10, local=local)
     for hand in ['right', 'left']:
-        pseudoresponse2 = pert2[string].iterate(hand, r_conv=1e-10)
+        pseudoresponse2 = pert2[string].iterate(hand, r_conv=1e-10, local=local)
 
 print('Rosenfeld tensor:')
 for string1 in ['X', 'Y', 'Z']:
     for string2 in ['X', 'Y', 'Z']:
-        beta[string1+string2] = HelperResp(lda, pert1[string1], pert2[string2]).linear_resp()
-        betap[string1+string2] = HelperResp(lda, pert2[string2], pert1[string1]).linear_resp()
+        beta[string1+string2] = ccsd_lpno.HelperResp(lda, pert1[string1], pert2[string2]).linear_resp()
+        betap[string1+string2] = ccsd_lpno.HelperResp(lda, pert2[string2], pert1[string1]).linear_resp()
 
         beta_new[string1+string2] = 0.5 * (beta[string1+string2] - betap[string1+string2])
         print(' {} {} : {}'.format(string1, string2, beta_new[string1+string2]))
@@ -145,21 +146,21 @@ beta_new = {}
 i=0
 for string in ['X', 'Y', 'Z']:
     P[string] = np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(p_array[i]))
-    pert1[string] = HelperPert(hcc, hbar, lda, P[string], omega)
+    pert1[string] = ccsd_lpno.HelperPert(hcc, hbar, lda, P[string], omega)
     L[string] = -0.5 * np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(angular_momentum[i]))
-    pert2[string] = HelperPert(hcc, hbar, lda, L[string], omega)
+    pert2[string] = ccsd_lpno.HelperPert(hcc, hbar, lda, L[string], omega)
 
     i+=1
     for hand in ['right', 'left']:
-        pseudoresponse1 = pert1[string].iterate(hand, r_conv=1e-10)
+        pseudoresponse1 = pert1[string].iterate(hand, r_conv=1e-10, local=local)
     for hand in ['right', 'left']:
-        pseudoresponse2 = pert2[string].iterate(hand, r_conv=1e-10)
+        pseudoresponse2 = pert2[string].iterate(hand, r_conv=1e-10, local=local)
 
 print('Rosenfeld tensor:')
 for string1 in ['X', 'Y', 'Z']:
     for string2 in ['X', 'Y', 'Z']:
-        beta[string1+string2] = HelperResp(lda, pert1[string1], pert2[string2]).linear_resp()
-        betap[string1+string2] = HelperResp(lda, pert2[string2], pert1[string1]).linear_resp()
+        beta[string1+string2] = ccsd_lpno.HelperResp(lda, pert1[string1], pert2[string2]).linear_resp()
+        betap[string1+string2] = ccsd_lpno.HelperResp(lda, pert2[string2], pert1[string1]).linear_resp()
 
         beta_new[string1+string2] = 0.5 * (beta[string1+string2] + betap[string1+string2])
         print(' {} {} : {}'.format(string1, string2, beta_new[string1+string2]))
@@ -205,21 +206,21 @@ beta_new = {}
 i=0
 for string in ['X', 'Y', 'Z']:
     P[string] = np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(p_array[i]))
-    pert1[string] = HelperPert(hcc, hbar, lda, P[string], omega)
+    pert1[string] = ccsd_lpno.HelperPert(hcc, hbar, lda, P[string], omega)
     L[string] = -0.5 * np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(angular_momentum[i]))
-    pert2[string] = HelperPert(hcc, hbar, lda, L[string], omega)
+    pert2[string] = ccsd_lpno.HelperPert(hcc, hbar, lda, L[string], omega)
 
     i+=1
     for hand in ['right', 'left']:
-        pseudoresponse1 = pert1[string].iterate(hand, r_conv=1e-10)
+        pseudoresponse1 = pert1[string].iterate(hand, r_conv=1e-10, local=local)
     for hand in ['right', 'left']:
-        pseudoresponse2 = pert2[string].iterate(hand, r_conv=1e-10)
+        pseudoresponse2 = pert2[string].iterate(hand, r_conv=1e-10, local=local)
 
 print('Rosenfeld tensor:')
 for string1 in ['X', 'Y', 'Z']:
     for string2 in ['X', 'Y', 'Z']:
-        beta[string1+string2] = HelperResp(lda, pert1[string1], pert2[string2]).linear_resp()
-        betap[string1+string2] = HelperResp(lda, pert2[string2], pert1[string1]).linear_resp()
+        beta[string1+string2] = ccsd_lpno.HelperResp(lda, pert1[string1], pert2[string2]).linear_resp()
+        betap[string1+string2] = ccsd_lpno.HelperResp(lda, pert2[string2], pert1[string1]).linear_resp()
 
         beta_new[string1+string2] = 0.5 * (beta[string1+string2] + betap[string1+string2])
         print(' {} {} : {}'.format(string1, string2, beta_new[string1+string2]))

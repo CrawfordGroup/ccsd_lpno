@@ -10,9 +10,7 @@ from .diis import *
 from opt_einsum import contract
 
 class HelperCCEnergy(object):
-    def __init__(self, local, pno_cut, rhf_wfn, memory=2):
-        # Hardcoding weak pair cutoff for now
-        e_cut = 1e-4
+    def __init__(self, rhf_wfn, local=None, pert=False, pno_cut=0, e_cut=1e-8):
 
         # Set energy and wfn from Psi4
         self.wfn = rhf_wfn
@@ -35,6 +33,10 @@ class HelperCCEnergy(object):
         self.no_vir = self.no_mo - self.no_occ - self.no_fz
         print("Checking dimensions of orbitals: no_occ: {}\t no_fz: {}\t no_active: {}\t no_vir: {}\t total: {}".format(self.no_fz+self.no_occ, self.no_fz, self.no_occ, self.no_vir, self.no_occ+self.no_fz+self.no_vir))
 
+        # Store the given cutoffs for localization
+        self.pno_cut = pno_cut
+        self.e_cut = e_cut
+
         self.mints = psi4.core.MintsHelper(self.wfn.basisset())
 
         self.H = np.asarray(self.mints.ao_kinetic()) + np.asarray(self.mints.ao_potential())
@@ -44,9 +46,29 @@ class HelperCCEnergy(object):
         # Make MO integrals
         # Build Fock matrix
         if local:
-            local = HelperLocal(ccsd)
-            self.MO = local.MO
-            self.F = local.F
+            # Localizing occupied orbitals using Boys localization procedure
+            Local = psi4.core.Localizer.build("BOYS", basis, self.C_occ)
+            Local.localize()
+            new_C_occ = Local.L
+            nc_arr = self.wfn.Ca().to_array()
+            nco_arr = new_C_occ.to_array()
+            print("Checking dimensions of localized active occupied:\nShape of local array: {}\nShape of C: {}\n".format(nco_arr.shape, nc_arr.shape))
+            nc_arr[:, self.no_fz:(self.no_fz + self.no_occ)] = nco_arr[:,:]
+            self.C_arr = psi4.core.Matrix.from_array(nc_arr)
+            print("Shape of new MO coeff matrix: {}".format(self.C_arr.shape))
+            self.MO_nfz = np.asarray(self.mints.mo_eri(self.C_arr, self.C_arr, self.C_arr, self.C_arr))
+            self.MO = self.MO_nfz[self.no_fz:, self.no_fz:, self.no_fz:, self.no_fz:]
+            print("Checking size of ERI tensor: {}".format(self.MO.shape))
+            print("Checking size of ERI_nfz tensor: {}".format(self.MO_nfz.shape))
+
+            # AO basis Fock matrix build
+            De = contract('ui,vi->uv', nc_arr[:, :(self.no_fz+self.no_occ)], nc_arr[:, :(self.no_fz+self.no_occ)])
+            self.F = self.H + 2.0 * contract('pqrs,rs->pq', self.I, De) - contract('prqs,rs->pq', self.I, De)
+            self.F_nfz = contract('uj, vi, uv', self.C_arr, self.C_arr, self.F)
+            self.F = self.F_nfz[self.no_fz:, self.no_fz:]
+            print("Checking size of Fock matrix: {}".format(self.F.shape))
+            self.F_ao = self.H + 2.0 * contract('pqrs,rs->pq', self.I, De) - contract('prqs,rs->pq', self.I, De)
+            hf_e = contract('pq,pq->', self.H + self.F_ao, De)
         else:    
             self.MO_nfz = np.asarray(self.mints.mo_eri(C, C, C, C))
             self.MO = self.MO_nfz[self.no_fz:, self.no_fz:, self.no_fz:, self.no_fz:]
@@ -88,7 +110,6 @@ class HelperCCEnergy(object):
         if local:
             # Initialize PNOs
             print('Local switch on. Initializing PNOs.')
-            
             # Identify weak pairs using MP2 pair corr energy
             e_ij = contract('ijab,ijab->ij', self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.t_ijab)
             self.mp2_e  = self.corr_energy(self.t_ia, self.t_ijab)
@@ -96,64 +117,28 @@ class HelperCCEnergy(object):
             #print('Pair corr energy matrix:\n{}'.format(e_ij))
             str_pair_list = abs(e_ij) > e_cut
             #print('Strong pair list:\n{}'.format(str_pair_list.reshape(1,-1)))
-            
-            # Create Tij and Ttij
-            T_ij = self.t_ijab.copy().reshape((self.no_occ * self.no_occ, self.no_vir, self.no_vir))
-            #print('T matrix [0]:\n{}'.format(T_ij[0]))
-            Tt_ij = 2.0 * T_ij.copy() 
-            Tt_ij -= T_ij.swapaxes(1, 2)
 
+            if pert:
+                print("Perturbed density on. Preparing perturbed density PNOs.")
+                # Hbar_ii  = f_ii + t_inef ( 2 * <in|ef> - <in|fe> ) 
+                Hbar_ii = self.F_occ.diagonal().copy()
+                Hbar_ii += 2.0 * contract('inef,inef->i', self.t_ijab, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
+                Hbar_ii -= contract('inef,infe->i', self.t_ijab, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
+                # Hbar_aa = f_aa - t_mnfa (2 * <mn|fa> - <mn|af> )
+                Hbar_aa = self.F_vir.diagonal().copy()
+                Hbar_aa -= 2.0 * contract('mnfa,mnfa->a', self.t_ijab, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
+                Hbar_aa += contract('mnfa,mnaf->a', self.t_ijab, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
+                Hbar = np.concatenate((Hbar_ii, Hbar_aa))
 
-            # Form pair densities
-            self.D = np.zeros((self.no_occ * self.no_occ, self.no_vir, self.no_vir))
-            for ij in range(self.no_occ * self.no_occ):
-                i = ij // self.no_occ
-                j = ij % self.no_occ
-                self.D[ij] = contract('ab,bc->ac', T_ij[ij], Tt_ij[ij].T) + contract('ab,bc->ac', T_ij[ij].T, Tt_ij[ij])
-                self.D[ij] *= 2.0 / (1.0 + int(i==j))
-            #print("Density matrix [0, 0]: \n{}".format(self.D[0]))
-
-            # Diagonalize pair densities to get PNOs (Q) and occ_nos
-            self.occ_nos = np.zeros((self.no_occ * self.no_occ, self.no_vir))
-            self.Q = np.zeros((self.no_occ * self.no_occ, self.no_vir, self.no_vir))
-            for ij in range(self.no_occ * self.no_occ):
-                    self.occ_nos[ij], self.Q[ij] = np.linalg.eigh(self.D[ij])
-
-            # Truncate each set of pnos by occ no
-            self.s_pairs = np.zeros(self.no_occ * self.no_occ)
-            self.Q_list = []
-            avg = 0.0
-            for ij in range(self.no_occ * self.no_occ):
-                survivors = self.occ_nos[ij] > pno_cut
-                if ij == 0:
-                    print("Survivors[0]:\n{}".format(survivors))
-                for a in range(self.no_vir):
-                    if survivors[a] == True:
-                        self.s_pairs[ij] += 1
-                avg += self.s_pairs[ij]
-                rm_pairs = self.no_vir - int(self.s_pairs[ij])
-                self.Q_list.append(self.Q[ij, :, rm_pairs:])
-            
-            avg = avg/(self.no_occ * self.no_occ)
-            print('Occupation numbers [0]:\n {}'.format(self.occ_nos[0]))
-            print("Numbers of surviving PNOs:\n{}".format(self.s_pairs))
-            print('Average number of PNOs:\n{}'.format(avg))
-
-            # Get semicanonical transforms
-                # transform F_vir to PNO basis
-                # Diagonalize F_pno, get L
-                # save virtual orb. energies
-            self.eps_pno_list = [] 
-            self.L_list = []
-            # For each ij, F_pno is pno x pno dimension
-            for ij in range(self.no_occ * self.no_occ):
-                tmp1 = self.Q_list[ij]
-                self.F_pno = contract('pa,ab,bq->pq', tmp1.swapaxes(0, 1), self.F_vir, tmp1)
-                self.eps_pno, L = np.linalg.eigh(self.F_pno)
-                self.eps_pno_list.append(self.eps_pno)
-                self.L_list.append(L)
-            #print('Q x L:\n{}\n'.format(Q @ L))
-
+                # Prepare the perturbation
+                A_list = {}
+                # Here, perturbation is dipole moment
+                dipole_array = self.mints.ao_dipole()
+                for i in range(3):
+                    A_list[i] = np.einsum('uj,vi,uv', self.C_arr, self.C_arr, np.asarray(dipole_array[i]))
+                local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, pert=pert, A_list=A_list, Hbar=Hbar)            
+            else:
+                local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, str_pair_list=str_pair_list)            
 
     # Make intermediates, Staunton:1991 eqns 3-11
     # Spin-adapted, every TEI term is modified to include
@@ -177,7 +162,6 @@ class HelperCCEnergy(object):
         Fae -= 2.0 * contract('mnaf,mnef->ae', taut, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
         Fae += contract('mnaf,mnfe->ae', taut, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
         return Fae
-
 
     def make_Fmi(self, taut, t_ia, t_ijab):
         Fmi = self.F_occ.copy()
@@ -232,7 +216,7 @@ class HelperCCEnergy(object):
 
 
     # Update T1 and T2 amplitudes
-    def update_ts(self, local, tau, tau_t, t_ia, t_ijab):
+    def update_ts(self, tau, tau_t, t_ia, t_ijab, local=None):
 
         no_occ = t_ia.shape[0]
         # Build intermediates
@@ -314,55 +298,16 @@ class HelperCCEnergy(object):
         Rijab -= tmp
         Rijab -= tmp.swapaxes(0, 1).swapaxes(2, 3)
 
-        if local:
-            # Q[i, b, a] is diff from Q[i, i, b, a]!
+        # Update T1s
+        new_tia =  t_ia.copy() 
+        new_tia += Ria / self.d_ia
 
-            # Update T1s
-            new_tia = t_ia.copy()
-            new_tia += Ria / self.d_ia
-            '''for i in range(no_occ):
-                tmp_Q = Q_list[i*no_occ+i]
-                tmp_L = L_list[i*no_occ+i]
-                # Transform Rs using Q
-                R1Q = contract('b,ba->a', Ria[i], tmp_Q)
-                # Transform RQs using L
-                R1QL = contract('b,ba->a', R1Q, tmp_L)
-                tmp3 = self.eps_pno_list[i*no_occ+i]
-                # Use vir orb. energies from semicanonical
-                d1_QL = np.zeros(tmp3.shape[0])
-                for a in range(tmp3.shape[0]):
-                    d1_QL[a] = self.F_occ[i, i] - tmp3[a]
-                T1QL = R1QL / d1_QL
-                # Back transform to TQs
-                T1Q = contract('ab,b->a', tmp_L, T1QL)
-                # Back transform to Ts
-                new_tia[i] += contract('ab,b->a', tmp_Q, T1Q)
-            '''
-            # Update T2s
+        # Update T2s
+        if local:
             new_tijab = t_ijab.copy()
-            for ij in range(no_occ * no_occ):
-                tmp1 = self.Q_list[ij]
-                # Transform Rs using Q
-                R2Q = contract('ac,ab,bd->cd', tmp1, Rijab[ij // no_occ, ij % no_occ], tmp1)
-                # Transform RQs using L
-                tmp2 = self.L_list[ij]
-                R2QL = contract('ac,ab,bd->cd', tmp2, R2Q, tmp2)
-                # Use vir orb. energies from semicanonical
-                tmp3 = self.eps_pno_list[ij]
-                d2_QL = np.zeros((tmp3.shape[0], tmp3.shape[0]))
-                for a in range(tmp3.shape[0]):
-                    for b in range(tmp3.shape[0]):
-                        d2_QL[a, b] = self.F_occ[ij // no_occ, ij // no_occ ] + self.F_occ[ij % no_occ, ij % no_occ] - tmp3[a] - tmp3[b]
-                #print('denom in semi-canonical PNO basis:\n{}\n'.format(d_QL.shape))
-                T2QL = R2QL / d2_QL
-                # Back transform to TQs
-                T2Q = contract('ca,ab,db->cd', tmp2, T2QL, tmp2)
-                # Back transform to Ts
-                new_tijab[ij // no_occ, ij % no_occ] += contract('ca,ab,db->cd', tmp1, T2Q, tmp1)
+            new_tijab += local.increment(Rijab, self.F_occ)
         else:
             # Apply denominators
-            new_tia =  t_ia.copy() 
-            new_tia += Ria / self.d_ia
             new_tijab = t_ijab.copy() 
             new_tijab += Rijab / self.d_ijab
 
@@ -377,7 +322,7 @@ class HelperCCEnergy(object):
         E_corr -= contract('ijba,ijab->', self.MO[:no_occ, :no_occ, no_occ:, no_occ:], tmp_tau)
         return E_corr
 
-    def do_CC(self, local=False, e_conv=1e-8, r_conv=1e-7, maxiter=40, max_diis=8, start_diis=0):
+    def do_CC(self, local=None, e_conv=1e-8, r_conv=1e-7, maxiter=40, max_diis=8, start_diis=0):
         self.old_e = self.corr_energy(self.t_ia, self.t_ijab)
         print('Iteration\t\t Correlation energy\tDifference\tRMS\nMP2\t\t\t {}'.format(self.old_e))
     # Set up DIIS
@@ -387,7 +332,7 @@ class HelperCCEnergy(object):
         for i in range(maxiter):
             tau_t = self.make_taut(self.t_ia, self.t_ijab)
             tau = self.make_tau(self.t_ia, self.t_ijab)
-            new_tia, new_tijab = self.update_ts(local, tau, tau_t, self.t_ia, self.t_ijab)
+            new_tia, new_tijab = self.update_ts(tau, tau_t, self.t_ia, self.t_ijab, local=local)
             new_e = self.corr_energy(new_tia, new_tijab)
             rms = np.linalg.norm(new_tia - self.t_ia)
             rms += np.linalg.norm(new_tijab - self.t_ijab)

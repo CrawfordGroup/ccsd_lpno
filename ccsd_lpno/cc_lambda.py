@@ -58,7 +58,7 @@ class HelperLambda(object):
         Gvv = -1.0 * contract('ijab,ijeb->ae', self.l_ijab, self.t_ijab)
         return Gvv
 
-    def update_ls(self, l_ia, l_ijab):
+    def update_ls(self, l_ia, l_ijab, local=None):
 
         Gvv = self.make_Gvv()
         Goo = self.make_Goo()
@@ -105,8 +105,13 @@ class HelperLambda(object):
 
         new_lia = l_ia.copy()
         new_lia += Ria / self.d_ia
-        new_lijab = l_ijab.copy()
-        new_lijab += Rijab / self.d_ijab
+
+        if local:
+            new_lijab = l_ijab.copy()
+            new_lijab += local.increment(Rijab, self.F_occ)
+        else:
+            new_lijab = l_ijab.copy()
+            new_lijab += Rijab / self.d_ijab
         
         return new_lia, new_lijab
 
@@ -117,14 +122,14 @@ class HelperLambda(object):
         E_pseudo = 0.5 * contract('abij,ijab->', self.MO[v, v, o, o], l_ijab)
         return E_pseudo
 
-    def iterate(self, e_conv=1e-8, r_conv=1e-7, maxiter=40, max_diis=8, start_diis=0):
+    def iterate(self, local=None, e_conv=1e-8, r_conv=1e-7, maxiter=40, max_diis=8, start_diis=0):
         self.old_pe = self.pseudo_energy(self.l_ijab)
         print('Iteration\t\t Pseudoenergy\t\tDifference\tRMS')
         # Set up DIIS
         diis = HelperDIIS(self.l_ia, self.l_ijab, max_diis)
 
         for i in range(maxiter):
-            new_lia, new_lijab = self.update_ls(self.l_ia, self.l_ijab)
+            new_lia, new_lijab = self.update_ls(self.l_ia, self.l_ijab, local=local)
             new_pe = self.pseudo_energy(new_lijab)
             rms = np.linalg.norm(new_lia - self.l_ia)
             rms += np.linalg.norm(new_lijab - self.l_ijab)

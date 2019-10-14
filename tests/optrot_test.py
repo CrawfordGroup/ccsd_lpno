@@ -54,8 +54,8 @@ def test_optrot():
     print('Nuclear repulsion energy: {}\n'.format(mol.nuclear_repulsion_energy()))
 
     # Create Helper_CCenergy object
-    optrot_lg = ccsd_lpno.do_linresp(local, pno_cut, wfn, omega_nm, mol, method='optrot', gauge='length') 
-    optrot_mvg = ccsd_lpno.do_linresp(local, pno_cut, wfn, omega_nm, mol, method='optrot', gauge='velocity') 
+    optrot_lg = ccsd_lpno.do_linresp(wfn, omega_nm, mol, method='optrot', gauge='length', local=local, pno_cut=pno_cut) 
+    optrot_mvg = ccsd_lpno.do_linresp(wfn, omega_nm, mol, method='optrot', gauge='velocity', local=local, pno_cut=pno_cut) 
 
     # Comaprison with Psi4
     psi4.set_options({'d_convergence': 1e-10})

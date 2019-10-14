@@ -41,7 +41,7 @@ def test_ccsd():
 
     # Set for LPNO
     #local=True
-    local=False
+    local=None
     pno_cut = 0.0
 
     # Compute RHF energy with psi4
@@ -52,7 +52,7 @@ def test_ccsd():
     print('Nuclear repulsion energy: {}\n'.format(mol.nuclear_repulsion_energy()))
 
     # Create Helper_CCenergy object
-    hcc = ccsd_lpno.HelperCCEnergy(local, pno_cut, wfn) 
+    hcc = ccsd_lpno.HelperCCEnergy(wfn, local=local, pno_cut=pno_cut) 
 
     ccsd_e = hcc.do_CC(local=False, e_conv=1e-10, r_conv =1e-10, maxiter=40, start_diis=0)
 

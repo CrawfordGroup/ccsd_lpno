@@ -15,10 +15,10 @@ from .cc_pert import *
 from psi4 import constants as pc 
 
 # Bring in wfn from psi4
-def do_linresp(local, pno_cut, wfn, omega_nm, mol, method='polar', gauge='length'): 
+def do_linresp(wfn, omega_nm, mol, method='polar', gauge='length', local=None, pno_cut=0): 
     # Create Helper_CCenergy object
-    hcc = HelperCCEnergy(local, pno_cut, wfn) 
-    ccsd_e = hcc.do_CC(local=False, e_conv=1e-10, r_conv =1e-10, maxiter=40, start_diis=0)
+    hcc = HelperCCEnergy(wfn, local=local, pno_cut=pno_cut) 
+    ccsd_e = hcc.do_CC(local=local, e_conv=1e-10, r_conv =1e-10, maxiter=40, start_diis=0)
 
     print('CCSD correlation energy: {}'.format(ccsd_e))
     # Create HelperCCHbar object
@@ -26,7 +26,7 @@ def do_linresp(local, pno_cut, wfn, omega_nm, mol, method='polar', gauge='length
 
     # Create HelperLamdba object
     lda = HelperLambda(hcc, hbar)
-    pseudo_e = lda.iterate(e_conv=1e-8, r_conv =1e-10, maxiter=30)
+    pseudo_e = lda.iterate(local=local, e_conv=1e-8, r_conv =1e-10, maxiter=30)
 
     # Set the frequency in hartrees
     omega = (pc.c * pc.h * 1e9) / (pc.hartree2J * omega_nm)
