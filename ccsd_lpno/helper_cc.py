@@ -1,6 +1,7 @@
 '''
 HelperCCEnergy class definition and function definitions
 For RHF CCSD calculations
+Includes localization via a HelperLocal class
 '''
 
 import numpy as np
@@ -10,9 +11,26 @@ from .diis import *
 from opt_einsum import contract
 
 class HelperCCEnergy(object):
-    def __init__(self, rhf_wfn, local=None, pert=False, pno_cut=0, e_cut=1e-8):
+    '''
+    Class for setting up and running a CCSD correlation energy calculation.
 
+    Spin-adapted equations using an RHF wavefunction.
+    Need to instantiate the object and then call the do_cc() function 
+
+    :param rhf_wfn: Psi4 wavefunction returned from RHF calculation
+    :type rhf_wfn: class 'psi4.core.RHF' 
+    :param local: Object containing functions for local correlation calculations
+    :type local: class 'ccsd_lpno.HelperLocal'
+    :param pert: Flag to use perturbed density (density is currently hardcoded)
+    :type pert: bool
+    :param pno_cut: Occupation number cutoff for truncating PNO space
+    :type pno_cut: double
+    :param e_cut: Weak pair cutoff for truncation of occupied pairs
+    :type e_cut: double
+    '''
+    def __init__(self, rhf_wfn, local=None, pert=False, pno_cut=0, e_cut=1e-8):
         # Set energy and wfn from Psi4
+        print(type(rhf_wfn))
         self.wfn = rhf_wfn
 
         # Get orbital coeffs from wfn
@@ -47,7 +65,7 @@ class HelperCCEnergy(object):
         # Build Fock matrix
         if local:
             # Localizing occupied orbitals using Boys localization procedure
-            Local = psi4.core.Localizer.build("BOYS", basis, self.C_occ)
+            Local = psi4.core.Localizer.build("PIPEK_MEZEY", basis, self.C_occ)
             Local.localize()
             new_C_occ = Local.L
             nc_arr = self.wfn.Ca().to_array()
@@ -88,6 +106,7 @@ class HelperCCEnergy(object):
 
         #print("MO basis F_vir:\n{}\n".format(self.F_vir))
         print("MO basis F_occ:\n{}\n".format(self.F_occ))
+        print("MO basis F_vir:\n{}\n".format(self.F_vir))
 
         # Once localized, the occupied orbital energies are no longer
         # equivalent to the diagonal of the Fock matrix
@@ -106,6 +125,9 @@ class HelperCCEnergy(object):
         #print("T2s[0,0]:\{}".format(self.t_ijab[0,0]))
         self.t_ijab /= self.d_ijab
         #print("denoms[0,0]:\{}".format(self.d_ijab[0,0]))
+        mp2_e = 2.0 * contract('ijab,ijab->', self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.t_ijab)
+        mp2_e -= contract('ijba,ijab->', self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.t_ijab)
+        print("MP2 energy(without truncation: {}".format(mp2_e))
 
         if local:
             # Initialize PNOs
@@ -121,13 +143,16 @@ class HelperCCEnergy(object):
             if pert:
                 print("Perturbed density on. Preparing perturbed density PNOs.")
                 # Hbar_ii  = f_ii + t_inef ( 2 * <in|ef> - <in|fe> ) 
-                Hbar_ii = self.F_occ.diagonal().copy()
-                Hbar_ii += 2.0 * contract('inef,inef->i', self.t_ijab, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
-                Hbar_ii -= contract('inef,infe->i', self.t_ijab, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
+                Hbar_oo = self.F_occ.copy()
+                Hbar_oo += 2.0 * contract('inef,mnef->mi', self.t_ijab, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
+                Hbar_oo -= contract('inef,mnfe->mi', self.t_ijab, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
+
+                Hbar_ii = Hbar_oo.diagonal().copy()
                 # Hbar_aa = f_aa - t_mnfa (2 * <mn|fa> - <mn|af> )
-                Hbar_aa = self.F_vir.diagonal().copy()
-                Hbar_aa -= 2.0 * contract('mnfa,mnfa->a', self.t_ijab, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
-                Hbar_aa += contract('mnfa,mnaf->a', self.t_ijab, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
+                Hbar_vv = self.F_vir.copy()
+                Hbar_vv -= 2.0 * contract('mnfa,mnfe->ae', self.t_ijab, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
+                Hbar_vv += contract('mnfa,mnef->ae', self.t_ijab, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
+                Hbar_aa = Hbar_vv.diagonal().copy()
                 Hbar = np.concatenate((Hbar_ii, Hbar_aa))
 
                 # Prepare the perturbation
@@ -139,6 +164,10 @@ class HelperCCEnergy(object):
                 local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, pert=pert, A_list=A_list, Hbar=Hbar)            
             else:
                 local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, str_pair_list=str_pair_list)            
+            Ria = np.zeros((self.no_occ, self.no_vir))
+            #self.tia, self.t_ijab = local.increment(Ria, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.F_occ)
+            self.t_ijab = local.increment(Ria, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.F_occ)
+        print("MP2 energy here: {}".format(self.corr_energy(self.t_ia, self.t_ijab))) 
 
     # Make intermediates, Staunton:1991 eqns 3-11
     # Spin-adapted, every TEI term is modified to include
@@ -215,10 +244,26 @@ class HelperCCEnergy(object):
         return Zmbij
 
 
-    # Update T1 and T2 amplitudes
     def update_ts(self, tau, tau_t, t_ia, t_ijab, local=None):
+        ''' 
+        Update T1 and T2 amplitudes
 
+        :param tau: T + 1/2 (T1^2)
+        :type tau: numpy array
+        :param tau_t: tau^+
+        :type tau_t: numpy array
+        :param t_ia: old T1 amplitude to be used in the residual equations
+        :type t_ia: numpy array
+        :param t_ijab: old T2 amplitude to be used in the residual equations
+        :type t_ijab: numpy array
+        :param local: Object containing the increment function for local correlation calculations
+        :type local: class 'ccsd_lpno.HelperLocal'
+
+        :returns: Updated T1 and T2 amplitudes
+        :rtype: numpy arrays
+        '''
         no_occ = t_ia.shape[0]
+
         # Build intermediates
         Fae = self.make_Fae(tau_t, t_ia, t_ijab)
         Fmi = self.make_Fmi(tau_t, t_ia, t_ijab)
@@ -300,21 +345,34 @@ class HelperCCEnergy(object):
 
         # Update T1s
         new_tia =  t_ia.copy() 
-        new_tia += Ria / self.d_ia
+        new_tijab = t_ijab.copy()
 
         # Update T2s
         if local:
-            new_tijab = t_ijab.copy()
-            new_tijab += local.increment(Rijab, self.F_occ)
+            #inc1, inc2 = local.increment(Ria, Rijab, self.F_occ)
+            inc2 = local.increment(Ria, Rijab, self.F_occ)
+            new_tia += Ria / self.d_ia
+            #new_tia += inc1
+            new_tijab += inc2
         else:
             # Apply denominators
-            new_tijab = t_ijab.copy() 
+            new_tia += Ria / self.d_ia
             new_tijab += Rijab / self.d_ijab
 
         return new_tia, new_tijab
 
-    # Compute CCSD correlation energy
     def corr_energy(self, t_ia, t_ijab):
+        '''
+        Compute CCSD correlation energy
+
+        :param t_ia: T1 used for corr energy calculation
+        :type t_ia: numpy array
+        :param t_ijab: T2 used for corr energy calculation
+        :type t_ijab: numpy array
+
+        :return: correlation energy
+        :rtype: double
+        '''
         no_occ = t_ia.shape[0] 
         E_corr = 2.0 * contract('ia,ia->', self.F[:no_occ, no_occ:], t_ia)
         tmp_tau = self.make_tau(t_ia, t_ijab)
@@ -324,6 +382,24 @@ class HelperCCEnergy(object):
 
     def do_CC(self, local=None, e_conv=1e-8, r_conv=1e-7, maxiter=40, max_diis=8, start_diis=0):
         self.old_e = self.corr_energy(self.t_ia, self.t_ijab)
+        '''
+        Do CCSD iterations with DIIS and local options
+
+        :param local: Object containing the increment function for local correlation calculations
+        :type local: class 'ccsd_lpno.HelperLocal'
+        :param e_conv: Convergence threshold for energy
+        :type e_conv: double
+        :param r_conv: Convergence threshold for T-amplitude RMSDs
+        :type r_conv: double
+        :param maxiter: Maximum no. of iterations
+        :type maxiter: integer
+        :param max_diis: Maximum no. of error vectors stored for DIIS
+        :type max_diis: integer
+        :param start_diis: Which iteration to start storing error vectors for DIIS
+        :type start_diis: integer
+
+        :return: Converged CCSD energy
+        '''
         print('Iteration\t\t Correlation energy\tDifference\tRMS\nMP2\t\t\t {}'.format(self.old_e))
     # Set up DIIS
         diis = HelperDIIS(self.t_ia, self.t_ijab, max_diis)

@@ -1,7 +1,8 @@
 '''
 HelperLambda class definition and function definitions
+
 For iteratively solving for lambda lagrangian multipliers
-After completing a CCSD calculation and building Hbar matrix elements
+after completing a CCSD calculation and building Hbar matrix elements
 '''
 
 import numpy as np
@@ -104,13 +105,16 @@ class HelperLambda(object):
         Rijab += Rijab.swapaxes(0, 1).swapaxes(2, 3)
 
         new_lia = l_ia.copy()
-        new_lia += Ria / self.d_ia
+        new_lijab = l_ijab.copy()
 
         if local:
-            new_lijab = l_ijab.copy()
-            new_lijab += local.increment(Rijab, self.F_occ)
+            inc1, inc2 = local.increment(Ria, Rijab, self.F_occ)
+            #inc2 = local.increment(Rijab, self.F_occ)
+            new_lia += inc1
+            #new_lia += Ria / self.d_ia
+            new_lijab += inc2
         else:
-            new_lijab = l_ijab.copy()
+            new_lia += Ria / self.d_ia
             new_lijab += Rijab / self.d_ijab
         
         return new_lia, new_lijab

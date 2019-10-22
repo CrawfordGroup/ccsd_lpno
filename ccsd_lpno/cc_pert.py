@@ -13,7 +13,7 @@ from opt_einsum import contract
 from .diis import *
 
 class HelperPert(object):
-    def __init__(self, ccsd, hbar, lda, A, omega):
+    def __init__(self, ccsd, hbar, lda, A, omega, local=None):
 
         # Get MOs from lda
         self.MO = ccsd.MO
@@ -58,11 +58,15 @@ class HelperPert(object):
         self.D_ijab += omega
 
         # Guesses for X1 and X2 amplitudes (First order perturbed T amplitudes)
-        self.x_ia = self.make_Avo().swapaxes(0,1)/self.D_ia
         self.pertbar_ijab = self.make_Avvoo().swapaxes(0,2).swapaxes(1,3)
-        self.x_ijab = self.pertbar_ijab.copy()
-        self.x_ijab += self.pertbar_ijab.swapaxes(0,1).swapaxes(2,3)
-        self.x_ijab = self.x_ijab/self.D_ijab
+        self.pertbar_ijab += self.pertbar_ijab.swapaxes(0,1).swapaxes(2,3)
+
+        if local:
+            self.x_ia, self.x_ijab = local.increment(self.make_Avo().swapaxes(0,1), self.pertbar_ijab, self.F_occ)
+        else:
+            self.x_ia = self.make_Avo().swapaxes(0,1)/self.D_ia
+            self.x_ijab = self.pertbar_ijab.copy()
+            self.x_ijab = self.x_ijab/self.D_ijab
 
 
         # Guesses for Y1 and Y2 amplitudes (First order perturbed Lambda amplitudes)
@@ -174,12 +178,15 @@ class HelperPert(object):
         new_xia = x_ia.copy()
         new_xijab = x_ijab.copy()
 
-        new_xia += r_ia/self.D_ia
         if local:
-            temp = local.increment(r_ijab, self.F_occ)
+            inc1, inc2 = local.increment(r_ia, r_ijab, self.F_occ)
+            #inc2 = local.increment(r_ijab, self.F_occ)
+            new_xia += inc1
+            #new_xia += r_ia/self.D_ia
         else:    
-            temp = r_ijab/self.D_ijab
-        new_xijab += temp + temp.swapaxes(0,1).swapaxes(2,3)
+            inc2 = r_ijab/self.D_ijab
+            new_xia += r_ia/self.D_ia
+        new_xijab += inc2 + inc2.swapaxes(0,1).swapaxes(2,3)
         
         return new_xia, new_xijab
 
@@ -345,13 +352,18 @@ class HelperPert(object):
         r_ijab -= contract('mi,mjab->ijab', self.make_Goo(self.t_ijab, y_ijab), self.Lmnef)
 
         new_yia = y_ia.copy()
-        new_yia += r_ia / self.D_ia
         new_yijab = y_ijab.copy()
+
         if local:
-            temp = local.increment(r_ijab, self.F_occ)
-        else:
-            temp = r_ijab / self.D_ijab
-        new_yijab += temp + temp.swapaxes(0,1).swapaxes(2,3)
+            inc1, inc2 = local.increment(r_ia, r_ijab, self.F_occ)
+            #inc2 = local.increment(r_ijab, self.F_occ)
+            new_yia += inc1
+            #new_yia += r_ia/self.D_ia
+        else:    
+            inc2 = r_ijab/self.D_ijab
+            new_yia += r_ia/self.D_ia
+        new_yijab += inc2 + inc2.swapaxes(0,1).swapaxes(2,3)
+
         #print("Checking y2 here: \n{}".format(new_yijab[0]))
 
         return new_yia, new_yijab

@@ -1,5 +1,6 @@
 '''
 Computing the CCSD-LR dipole polarizability  using an RHF reference
+
 References used:
     - http://github.com/CrawfordGroup/ProgrammingProjects
     - Stanton:1991:4334
