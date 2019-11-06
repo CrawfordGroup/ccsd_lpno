@@ -1,0 +1,255 @@
+
+*** tstart() called on Ruhees-MacBook-Pro.local
+*** at Tue Nov  5 15:41:44 2019
+
+   => Loading Basis Set <=
+
+    Name: STO-3G
+    Role: ORBITAL
+    Keyword: BASIS
+    atoms 1-2 entry O          line    81 file /Users/ruheedcunha/Desktop/playground/psi4/share/psi4/basis/sto-3g.gbs 
+    atoms 3-4 entry H          line    19 file /Users/ruheedcunha/Desktop/playground/psi4/share/psi4/basis/sto-3g.gbs 
+
+
+         ---------------------------------------------------------
+                                   SCF
+               by Justin Turney, Rob Parrish, Andy Simmonett
+                          and Daniel G. A. Smith
+                              RHF Reference
+                        1 Threads,   1907 MiB Core
+         ---------------------------------------------------------
+
+  ==> Geometry <==
+
+    Molecular point group: c1
+    Full point group: C2
+
+    Geometry (in Angstrom), charge = 0, multiplicity = 1:
+
+       Center              X                  Y                   Z               Mass       
+    ------------   -----------------  -----------------  -----------------  -----------------
+         O           -0.028962160801    -0.694396279686    -0.049338350197    15.994914619570
+         O            0.028962160801     0.694396279686    -0.049338350197    15.994914619570
+         H            0.350498145881    -0.910645626300     0.783035421460     1.007825032230
+         H           -0.350498145881     0.910645626300     0.783035421460     1.007825032230
+
+  Running in c1 symmetry.
+
+  Rotational constants: A =     10.61423  B =      0.97044  C =      0.91566 [cm^-1]
+  Rotational constants: A = 318206.57700  B =  29093.19760  C =  27450.82465 [MHz]
+  Nuclear repulsion =   38.253968531037714
+
+  Charge       = 0
+  Multiplicity = 1
+  Electrons    = 18
+  Nalpha       = 9
+  Nbeta        = 9
+
+  ==> Algorithm <==
+
+  SCF Algorithm Type is PK.
+  DIIS enabled.
+  MOM disabled.
+  Fractional occupation disabled.
+  Guess Type is SAD.
+  Energy threshold   = 1.00e-10
+  Density threshold  = 1.00e-10
+  Integral threshold = 0.00e+00
+
+  ==> Primary Basis <==
+
+  Basis Set: STO-3G
+    Blend: STO-3G
+    Number of shells: 8
+    Number of basis function: 12
+    Number of Cartesian functions: 12
+    Spherical Harmonics?: true
+    Max angular momentum: 1
+
+  ==> Pre-Iterations <==
+
+   -------------------------------------------------------
+    Irrep   Nso     Nmo     Nalpha   Nbeta   Ndocc  Nsocc
+   -------------------------------------------------------
+     A         12      12       0       0       0       0
+   -------------------------------------------------------
+    Total      12      12       9       9       9       0
+   -------------------------------------------------------
+
+  ==> Integral Setup <==
+
+  Using in-core PK algorithm.
+   Calculation information:
+      Number of atoms:                   4
+      Number of AO shells:               8
+      Number of primitives:             24
+      Number of atomic orbitals:        12
+      Number of basis functions:        12
+
+      Integral cutoff                 1.00e-12
+      Number of threads:                 1
+
+  Performing in-core PK
+  Using 6162 doubles for integral storage.
+  We computed 663 shell quartets total.
+  Whereas there are 666 unique shell quartets.
+
+  ==> DiskJK: Disk-Based J/K Matrices <==
+
+    J tasked:                  Yes
+    K tasked:                  Yes
+    wK tasked:                  No
+    Memory [MiB]:             1430
+    Schwarz Cutoff:          1E-12
+
+    OpenMP threads:              1
+
+  Minimum eigenvalue in the overlap matrix is 3.2979058411E-01.
+  Using Symmetric Orthogonalization.
+
+  SCF Guess: Superposition of Atomic Densities via on-the-fly atomic UHF.
+
+  ==> Iterations <==
+
+                        Total Energy        Delta E     RMS |[F,P]|
+
+   @RHF iter SAD:  -147.49438085473076   -1.47494e+02   0.00000e+00 
+   @RHF iter   1:  -148.70661563707307   -1.21223e+00   1.77536e-02 DIIS
+   @RHF iter   2:  -148.74629781216584   -3.96822e-02   3.60960e-03 DIIS
+   @RHF iter   3:  -148.74791368910229   -1.61588e-03   5.00506e-04 DIIS
+   @RHF iter   4:  -148.74794588610598   -3.21970e-05   7.17610e-05 DIIS
+   @RHF iter   5:  -148.74794723646676   -1.35036e-06   1.79709e-05 DIIS
+   @RHF iter   6:  -148.74794733032621   -9.38595e-08   3.17050e-06 DIIS
+   @RHF iter   7:  -148.74794733300399   -2.67778e-09   6.09333e-07 DIIS
+   @RHF iter   8:  -148.74794733309841   -9.44169e-11   1.05140e-07 DIIS
+   @RHF iter   9:  -148.74794733310114   -2.72848e-12   1.75675e-08 DIIS
+   @RHF iter  10:  -148.74794733310125   -1.13687e-13   1.45817e-09 DIIS
+   @RHF iter  11:  -148.74794733310100    2.55795e-13   2.61012e-10 DIIS
+   @RHF iter  12:  -148.74794733310114   -1.42109e-13   4.98695e-11 DIIS
+  Energy and wave function converged.
+
+
+  ==> Post-Iterations <==
+
+    Orbital Energies [Eh]
+    ---------------------
+
+    Doubly Occupied:                                                      
+
+       1A    -20.323537     2A    -20.322701     3A     -1.435017  
+       4A     -1.131779     5A     -0.671058     6A     -0.561493  
+       7A     -0.493163     8A     -0.427162     9A     -0.351030  
+
+    Virtual:                                                              
+
+      10A      0.514243    11A      0.598191    12A      0.713392  
+
+    Final Occupation by Irrep:
+              A 
+    DOCC [     9 ]
+
+  @RHF Final Energy:  -148.74794733310114
+
+   => Energetics <=
+
+    Nuclear Repulsion Energy =             38.2539685310377138
+    One-Electron Energy =                -282.5699522108691326
+    Two-Electron Energy =                  95.5680363467302811
+    Total Energy =                       -148.7479473331011377
+
+Computation Completed
+
+
+Properties will be evaluated at   0.000000,   0.000000,   0.000000 [a0]
+
+Properties computed using the SCF density matrix
+
+  Nuclear Dipole Moment: [e a0]
+     X:     0.0000      Y:     0.0000      Z:     1.4677
+
+  Electronic Dipole Moment: [e a0]
+     X:     0.0000      Y:     0.0000      Z:    -0.4717
+
+  Dipole Moment: [e a0]
+     X:     0.0000      Y:     0.0000      Z:     0.9960     Total:     0.9960
+
+  Dipole Moment: [D]
+     X:     0.0000      Y:     0.0000      Z:     2.5315     Total:     2.5315
+
+
+*** tstop() called on Ruhees-MacBook-Pro.local at Tue Nov  5 15:41:44 2019
+Module time:
+	user time   =       0.17 seconds =       0.00 minutes
+	system time =       0.01 seconds =       0.00 minutes
+	total time  =          0 seconds =       0.00 minutes
+Total time:
+	user time   =       0.17 seconds =       0.00 minutes
+	system time =       0.01 seconds =       0.00 minutes
+	total time  =          0 seconds =       0.00 minutes
+  ## MO coefficients (C) (Symmetry 0) ##
+  Irrep: 1 Size: 12 x 12
+
+                 1                   2                   3                   4                   5
+
+    1     0.70279539385263     0.70337285591963     0.16480879113335     0.16881785113767     0.03505458379386
+    2     0.01978089180432     0.01570738246566    -0.57699532119626    -0.64533945675245    -0.19475841526249
+    3     0.00239169707369     0.00248219746924    -0.07229557404479    -0.09612942455173     0.41467360201203
+    4     0.00125153091349     0.00107935982654    -0.02787766753251    -0.04426503168642     0.05208673313497
+    5     0.00311088313618    -0.00096727520401    -0.09730856824357     0.09423871158950    -0.25260069326875
+    6    -0.70279539379652     0.70337285597569     0.16480879113334    -0.16881785113768     0.03505458379385
+    7    -0.01978089180307     0.01570738246724    -0.57699532119622     0.64533945675249    -0.19475841526245
+    8    -0.00239169707349     0.00248219746943    -0.07229557404478     0.09612942455173     0.41467360201200
+    9     0.00125153091340    -0.00107935982664     0.02787766753251    -0.04426503168642    -0.05208673313494
+   10     0.00311088313625     0.00096727520377     0.09730856824358     0.09423871158948     0.25260069326876
+   11    -0.00460936111119    -0.00474635564428    -0.09402599014666    -0.18601733066369     0.33078163388149
+   12     0.00460936111081    -0.00474635564465    -0.09402599014665     0.18601733066370     0.33078163388148
+
+                 6                   7                   8                   9                  10
+
+    1     0.05241456756717     0.05153794177698     0.05437384389887     0.02182741219550     0.08806012029365
+    2    -0.26127791309513    -0.24429710324615    -0.28163911583885    -0.12090594246001    -0.49659572042314
+    3     0.10486689743925     0.31007249410680     0.54987288473301    -0.15094914671654    -0.15109597055754
+    4     0.58406293001492    -0.03842887459403    -0.28106281889954     0.70275490409927    -0.10022146659783
+    5     0.03545223801963     0.55714853389871     0.08075340148547     0.08690510483203    -0.78780262273295
+    6    -0.05241456756717     0.05153794177698    -0.05437384389889     0.02182741219550    -0.08806012029364
+    7     0.26127791309511    -0.24429710324612     0.28163911583893    -0.12090594246001     0.49659572042312
+    8    -0.10486689743927     0.31007249410668    -0.54987288473306    -0.15094914671662     0.15109597055751
+    9     0.58406293001481     0.03842887459392    -0.28106281889942    -0.70275490409941    -0.10022146659781
+   10     0.03545223801956    -0.55714853389870     0.08075340148560    -0.08690510483203    -0.78780262273297
+   11     0.22052466468640     0.00027386555894     0.27872167969572     0.10910659517453     0.25275751328218
+   12    -0.22052466468640     0.00027386555889    -0.27872167969575     0.10910659517452    -0.25275751328213
+
+                11                  12
+
+    1     0.06942452822729     0.04424113054402
+    2    -0.47849551538861    -0.33187561647353
+    3    -0.51521578836388    -0.55605706803879
+    4    -0.26704197611933    -0.22509575009918
+    5     0.17278267335587     0.34370440290364
+    6     0.06942452822728    -0.04424113054403
+    7    -0.47849551538858     0.33187561647360
+    8    -0.51521578836380     0.55605706803887
+    9     0.26704197611931    -0.22509575009922
+   10    -0.17278267335578     0.34370440290367
+   11     0.79913848661500     0.82949420937874
+   12     0.79913848661489    -0.82949420937886
+
+
+
+  ==> Pipek-Mezey Localizer <==
+
+    Convergence =   1.000E-12
+    Maxiter     =        1000
+
+    Iteration                   Metric       Residual
+    @PM    0   3.8504261337297767E+00              -
+    @PM    1   6.8756542896523527E+00   7.856866E-01
+    @PM    2   7.6202980213819949E+00   1.083015E-01
+    @PM    3   7.6831166407579605E+00   8.243591E-03
+    @PM    4   7.6863322141347439E+00   4.185246E-04
+    @PM    5   7.6863407286547147E+00   1.107748E-06
+    @PM    6   7.6863407297878643E+00   1.474238E-10
+    @PM    7   7.6863407297902766E+00   3.138415E-13
+
+    PM Localizer converged.
+
