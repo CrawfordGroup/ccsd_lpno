@@ -22,7 +22,74 @@ psi4.core.set_output_file('output.dat', False)
 np.set_printoptions(precision=12, threshold=np.inf, linewidth=200, suppress=True)
 
 # Set Psi4 options
-mol = psi4.geometry("""
+'''mol = psi4.geometry("""
+C
+H 1 B1
+C 1 B2 2 A1
+C 3 B3 1 A2 2 D1
+H 4 B4 3 A3 1 D2
+H 1 B5 2 A4 3 D3
+H 1 B6 2 A5 3 D4
+H 3 B7 1 A6 2 D5
+H 3 B8 1 A7 2 D6
+H 4 B9 3 A8 1 D7
+F 4 B10 3 A9 1 D8
+
+A5  =  108.16228279
+D6  = -59.81524907
+A6  =  109.98124081
+D7  =  58.54006537
+A7  =  110.28985606
+D8  = -60.5529762
+A8  =  111.37724991
+A9  =  109.846557
+B1  =  1.08503577
+B2  =  1.52724872
+B3  =  1.51413535
+B4  =  1.08401589
+B5  =  1.08671956
+B6  =  1.08371249
+B7  =  1.08658269
+B8  =  1.08806091
+B9  =  1.08491428
+B10 =  1.37421632
+D1  =  179.30667262
+D2  = -179.79478803
+A1  =  110.93125751
+D3  = -121.88723206
+A2  =  112.95018677
+D4  =  121.60266638
+A3  =  111.40071383
+A4  =  107.81289087
+D5  =  57.83253083
+symmetry c1
+""")'''
+
+'''mol = psi4.geometry("""
+H
+H 1 R
+H 1 D 2 P
+H 3 R 1 P 2 T
+H 3 D 4 P 1 X
+H 5 R 3 P 4 T
+H 5 D 6 P 3 X
+H 7 R 5 P 6 T
+H 7 D 8 P 5 X
+H 9 R 7 P 8 T
+H 9 D 10 P 7 X
+H 11 R 9 P 10 T
+H 11 D 12 P 9 X
+H 13 R 11 P 12 T
+
+R = 0.75
+D = 1.5
+P = 90.0
+T = 60.0
+X = 180.0
+symmetry c1
+""")'''
+
+'''mol = psi4.geometry("""
 H
 H 1 R
 H 1 D 2 P
@@ -38,22 +105,23 @@ P = 90.0
 T = 60.0
 X = 180.0
 symmetry c1
-""")
-'''mol = psi4.geometry("""                                                 
+""")'''
+
+mol = psi4.geometry("""                                                 
  O     -0.028962160801    -0.694396279686    -0.049338350190                                                                  
  O      0.028962160801     0.694396279686    -0.049338350190                                                                  
  H      0.350498145881    -0.910645626300     0.783035421467                                                                  
  H     -0.350498145881     0.910645626300     0.783035421467                                                                  
 symmetry c1        
-""")'''
+""")
 
 psi4.set_options({'basis': 'sto-3g', 'guess': 'sad',
                   'scf_type': 'pk', 'e_convergence': 1e-10,
                   'd_convergence': 1e-10, 'save_jk': 'true'})
 
 # Compute RHF energy with psi4
-#psi4.set_module_options('SCF', {'E_CONVERGENCE': 1e-10})
-#psi4.set_module_options('SCF', {'D_CONVERGENCE': 1e-10})
+psi4.set_module_options('SCF', {'E_CONVERGENCE': 1e-10})
+psi4.set_module_options('SCF', {'D_CONVERGENCE': 1e-10})
 e_scf, wfn = psi4.energy('SCF', return_wfn=True)
 print('SCF energy: {}\n'.format(e_scf))
 print('Nuclear repulsion energy: {}\n'.format(mol.nuclear_repulsion_energy()))
@@ -64,7 +132,7 @@ no_vir = wfn.nmo() - wfn.doccpi()[0] - wfn.frzcpi()[0]
 #pert=False
 local = HelperLocal(wfn.doccpi()[0], no_vir)
 pert=True
-pno_cut = 1e-5
+pno_cut = 1e-9
 
 # Create Helper_CCenergy object
 hcc = ccsd_lpno.HelperCCEnergy(wfn, local=local, pert=pert, pno_cut=pno_cut) 
@@ -79,7 +147,7 @@ print('Finished building Hbar matrix elements.')
 # Create HelperLamdba object
 lda = ccsd_lpno.HelperLambda(hcc, hbar)
 pseudo_e = lda.iterate(local=local, e_conv=1e-8, r_conv =1e-10, maxiter=30)
-print('2nd Eps PNO list here: {}'.format(local.eps_pno_list))
+#print('2nd Eps PNO list here: {}'.format(local.eps_pno_list))
 
 # Set the frequency in hartrees
 omega_nm = 589.0
@@ -100,6 +168,10 @@ pert1 = {}
 L = {}
 pert2 = {}
 
+#test stuff
+x1_mu = {}
+x2_mu = {}
+
 # Rosenfeld tensor
 beta = {}
 betap = {}
@@ -117,6 +189,11 @@ for string in ['X', 'Y', 'Z']:
         pseudoresponse1 = pert1[string].iterate(hand, r_conv=1e-10, local=local)
     for hand in ['right', 'left']:
         pseudoresponse2 = pert2[string].iterate(hand, r_conv=1e-10, local=local)
+    
+    #x1_mu[string] = np.load('x1MU_{}.npy'.format(string))
+    #x2_mu[string] = np.load('x2MU_{}.npy'.format(string))
+    #print('X1 is the same: {}'.format(np.allclose(pert1[string].x_ia, x1_mu[string])))
+    #print('X2 is the same: {}'.format(np.allclose(pert1[string].x_ijab, x2_mu[string])))
 
 print('Rosenfeld tensor:')
 for string1 in ['X', 'Y', 'Z']:

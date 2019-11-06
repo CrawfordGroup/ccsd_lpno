@@ -106,7 +106,6 @@ class HelperCCEnergy(object):
 
         #print("MO basis F_vir:\n{}\n".format(self.F_vir))
         print("MO basis F_occ:\n{}\n".format(self.F_occ))
-        print("MO basis F_vir:\n{}\n".format(self.F_vir))
 
         # Once localized, the occupied orbital energies are no longer
         # equivalent to the diagonal of the Fock matrix
@@ -165,8 +164,8 @@ class HelperCCEnergy(object):
             else:
                 local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, str_pair_list=str_pair_list)            
             Ria = np.zeros((self.no_occ, self.no_vir))
-            #self.tia, self.t_ijab = local.increment(Ria, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.F_occ)
-            self.t_ijab = local.increment(Ria, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.F_occ)
+            self.tia, self.t_ijab = local.increment(Ria, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.F_occ)
+            #self.t_ijab = local.increment(Ria, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.F_occ)
         print("MP2 energy here: {}".format(self.corr_energy(self.t_ia, self.t_ijab))) 
 
     # Make intermediates, Staunton:1991 eqns 3-11
@@ -349,10 +348,10 @@ class HelperCCEnergy(object):
 
         # Update T2s
         if local:
-            #inc1, inc2 = local.increment(Ria, Rijab, self.F_occ)
-            inc2 = local.increment(Ria, Rijab, self.F_occ)
-            new_tia += Ria / self.d_ia
-            #new_tia += inc1
+            inc1, inc2 = local.increment(Ria, Rijab, self.F_occ)
+            #inc2 = local.increment(Ria, Rijab, self.F_occ)
+            #new_tia += Ria / self.d_ia
+            new_tia += inc1
             new_tijab += inc2
         else:
             # Apply denominators

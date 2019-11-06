@@ -13,12 +13,19 @@ from .helper_cc import *
 from .cc_hbar import *
 from .cc_lambda import *
 from .cc_pert import *
+from .local import *
 from psi4 import constants as pc 
 
 # Bring in wfn from psi4
-def do_linresp(wfn, omega_nm, mol, method='polar', gauge='length', local=None, pno_cut=0): 
+def do_linresp(wfn, omega_nm, mol, method='polar', gauge='length', localize=False, pert=False, pno_cut=0): 
+    
+    # Create Helper_local object
+    if localize:
+        no_vir = wfn.nmo() - wfn.doccpi()[0] - wfn.frzcpi()[0]
+        local = HelperLocal(wfn.doccpi()[0], no_vir)
+
     # Create Helper_CCenergy object
-    hcc = HelperCCEnergy(wfn, local=local, pno_cut=pno_cut) 
+    hcc = HelperCCEnergy(wfn, local=local, pert=pert, pno_cut=pno_cut) 
     ccsd_e = hcc.do_CC(local=local, e_conv=1e-10, r_conv =1e-10, maxiter=40, start_diis=0)
 
     print('CCSD correlation energy: {}'.format(ccsd_e))
@@ -45,11 +52,11 @@ def do_linresp(wfn, omega_nm, mol, method='polar', gauge='length', local=None, p
         i=0
         for string in ['X', 'Y', 'Z']:
             Mu[string] = np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(dipole_array[i]))
-            pert[string] = HelperPert(hcc, hbar, lda, Mu[string], omega)
+            pert[string] = HelperPert(hcc, hbar, lda, Mu[string], omega, local=local)
 
             i += 1
             for hand in ['right', 'left']:
-                pseudoresponse = pert[string].iterate(hand, r_conv=1e-10)
+                pseudoresponse = pert[string].iterate(hand, r_conv=1e-10, local=local)
 
         for string in ['X', 'Y', 'Z']:
             for string2 in ['X', 'Y', 'Z']:
@@ -95,15 +102,15 @@ def do_linresp(wfn, omega_nm, mol, method='polar', gauge='length', local=None, p
             i=0
             for string in ['X', 'Y', 'Z']:
                 Mu[string] = np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(dipole_array[i]))
-                pert1[string] = HelperPert(hcc, hbar, lda, Mu[string], omega)
+                pert1[string] = HelperPert(hcc, hbar, lda, Mu[string], omega, local=local)
                 L[string] = -0.5 * np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(angular_momentum[i]))
-                pert2[string] = HelperPert(hcc, hbar, lda, L[string], omega)
+                pert2[string] = HelperPert(hcc, hbar, lda, L[string], omega, local=local)
 
                 i+=1
                 for hand in ['right', 'left']:
-                    pseudoresponse1 = pert1[string].iterate(hand, r_conv=1e-10)
+                    pseudoresponse1 = pert1[string].iterate(hand, r_conv=1e-10, local=local)
                 for hand in ['right', 'left']:
-                    pseudoresponse2 = pert2[string].iterate(hand, r_conv=1e-10)
+                    pseudoresponse2 = pert2[string].iterate(hand, r_conv=1e-10, local=local)
 
             print('Rosenfeld tensor:')
             for string1 in ['X', 'Y', 'Z']:
@@ -154,15 +161,15 @@ def do_linresp(wfn, omega_nm, mol, method='polar', gauge='length', local=None, p
             i=0
             for string in ['X', 'Y', 'Z']:
                 P[string] = np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(p_array[i]))
-                pert1[string] = HelperPert(hcc, hbar, lda, P[string], omega)
+                pert1[string] = HelperPert(hcc, hbar, lda, P[string], omega, local=local)
                 L[string] = -0.5 * np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(angular_momentum[i]))
-                pert2[string] = HelperPert(hcc, hbar, lda, L[string], omega)
+                pert2[string] = HelperPert(hcc, hbar, lda, L[string], omega, local=local)
 
                 i+=1
                 for hand in ['right', 'left']:
-                    pseudoresponse1 = pert1[string].iterate(hand, r_conv=1e-10)
+                    pseudoresponse1 = pert1[string].iterate(hand, r_conv=1e-10, local=local)
                 for hand in ['right', 'left']:
-                    pseudoresponse2 = pert2[string].iterate(hand, r_conv=1e-10)
+                    pseudoresponse2 = pert2[string].iterate(hand, r_conv=1e-10, local=local)
 
             print('Rosenfeld tensor:')
             for string1 in ['X', 'Y', 'Z']:
@@ -212,15 +219,15 @@ def do_linresp(wfn, omega_nm, mol, method='polar', gauge='length', local=None, p
             i=0
             for string in ['X', 'Y', 'Z']:
                 P[string] = np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(p_array[i]))
-                pert1[string] = HelperPert(hcc, hbar, lda, P[string], omega)
+                pert1[string] = HelperPert(hcc, hbar, lda, P[string], omega, local=local)
                 L[string] = -0.5 * np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(angular_momentum[i]))
-                pert2[string] = HelperPert(hcc, hbar, lda, L[string], omega)
+                pert2[string] = HelperPert(hcc, hbar, lda, L[string], omega, local=local)
 
                 i+=1
                 for hand in ['right', 'left']:
-                    pseudoresponse1 = pert1[string].iterate(hand, r_conv=1e-10)
+                    pseudoresponse1 = pert1[string].iterate(hand, r_conv=1e-10, local=local)
                 for hand in ['right', 'left']:
-                    pseudoresponse2 = pert2[string].iterate(hand, r_conv=1e-10)
+                    pseudoresponse2 = pert2[string].iterate(hand, r_conv=1e-10, local=local)
 
             print('Rosenfeld tensor:')
             for string1 in ['X', 'Y', 'Z']:

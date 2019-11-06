@@ -109,9 +109,9 @@ class HelperLambda(object):
 
         if local:
             inc1, inc2 = local.increment(Ria, Rijab, self.F_occ)
-            #inc2 = local.increment(Rijab, self.F_occ)
-            new_lia += inc1
+            #inc2 = local.increment(Ria, Rijab, self.F_occ)
             #new_lia += Ria / self.d_ia
+            new_lia += inc1
             new_lijab += inc2
         else:
             new_lia += Ria / self.d_ia

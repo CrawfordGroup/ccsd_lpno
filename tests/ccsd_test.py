@@ -21,21 +21,38 @@ np.set_printoptions(precision=12, threshold=np.inf, linewidth=200, suppress=True
 def test_ccsd():
     # Set Psi4 options
     mol = psi4.geometry("""                                                 
-    0 1
+    H
+    H 1 R
+    H 1 D 2 P
+    H 3 R 1 P 2 T
+    H 3 D 4 P 1 X
+    H 5 R 3 P 4 T
+    H 5 D 6 P 3 X
+    H 7 R 5 P 6 T
+
+    R = 0.75
+    D = 1.5
+    P = 90.0
+    T = 60.0
+    X = 180.0
+    symmetry c1
+    """)
+
+    ''' 0 1
     O
     H 1 1.1
     H 1 1.1 2 104 
     noreorient
-    symmetry c1
-    """)
-
-    psi4.set_options({'basis': 'sto-3g', 'scf_type': 'pk',
-                      'freeze_core': 'false', 'e_convergence': 1e-10,
+    symmetry c1'''
+    
+    psi4.set_options({'basis': 'aug-cc-pVDZ', 'scf_type': 'pk',
+                      'e_convergence': 1e-10,
+                      #'freeze_core': 'false', 'e_convergence': 1e-10,
                       'd_convergence': 1e-10, 'save_jk': 'true'})
 
     # Set for CCSD
-    E_conv = 1e-8
-    R_conv = 1e-7
+    E_conv = 1e-10
+    R_conv = 1e-10
     maxiter = 40
     compare_psi4 = False
 
@@ -54,13 +71,13 @@ def test_ccsd():
     # Create Helper_CCenergy object
     hcc = ccsd_lpno.HelperCCEnergy(wfn, local=local, pno_cut=pno_cut) 
 
-    ccsd_e = hcc.do_CC(local=False, e_conv=1e-10, r_conv =1e-10, maxiter=40, start_diis=0)
+    ccsd_e = hcc.do_CC(local=False, e_conv=E_conv, r_conv=R_conv, maxiter=40, start_diis=0)
 
     print('CCSD correlation energy: {}'.format(ccsd_e))
 
-    psi4_ccsd_e = psi4.energy('CCSD', e_convergence=1e-8, r_convergence=1e-7)
+    psi4_ccsd_e = psi4.energy('CCSD', e_convergence=1e-10, r_convergence=1e-10)
     print('Psi4 CCSD energy: {}'.format(psi4_ccsd_e))
-    psi4.compare_values(e_scf+ccsd_e, psi4_ccsd_e, 11, "CCSD Energy")
+    psi4.compare_values(e_scf+ccsd_e, psi4_ccsd_e, 10, "CCSD Energy")
 
 if __name__=="__main__":
     test_ccsd()

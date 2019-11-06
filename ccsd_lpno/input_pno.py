@@ -1,28 +1,18 @@
-'''
-Molecule library to enable easier testing
-Works with current Psi4
-'''
+import psi4
 
-mollib = {}
+mol = {}
 
-mollib['hof'] = """
-          O          -0.947809457408    -0.132934425181     0.000000000000
-          H          -1.513924046286     1.610489987673     0.000000000000
-          F           0.878279174340     0.026485523618     0.000000000000
-unit bohr
-noreorient
-"""
+mol["h2o2"] = psi4.geometry("""
+O     -0.028962160801    -0.694396279686    -0.049338350190                                                                  
+O      0.028962160801     0.694396279686    -0.049338350190                                                                  
+H      0.350498145881    -0.910645626300     0.783035421467                                                                  
+H     -0.350498145881     0.910645626300     0.783035421467                                                                  
+#noreorient
+symmetry c1        
+""")
 
-mollib['h2o2'] = """
-     O     -0.028962160801    -0.694396279686    -0.049338350190                                                                  
-     O      0.028962160801     0.694396279686    -0.049338350190                                                                  
-     H      0.350498145881    -0.910645626300     0.783035421467                                                                  
-     H     -0.350498145881     0.910645626300     0.783035421467                                                                  
-    symmetry c1        
-"""
-
-# OR45 (S)-methyloxirane mollibecule 1.
-mollib["(S)-mox"] =  """
+# OR45 (S)-methyloxirane Molecule 1.
+mol["(S)-mox"] = psi4.geometry("""
 C -1.0434290  0.6153280 -0.0615190
 C  0.1515990 -0.0360920  0.4888630
 H  0.1531120 -0.2526560  1.5570100
@@ -34,10 +24,10 @@ H  2.0832840  0.9000390  0.3286960
 H  1.4131530  0.3248980 -1.2127570
 H  2.0755690 -0.8302050 -0.0468100
 symmetry c1
-"""
+""")
 
 # OR45 Dimethylallene Molecule 17.
-mollib["dma"] =  """
+mol["dma"] = psi4.geometry("""
 C -0.0000020 -0.4140180 -0.0000820
 C  1.2460740 -0.4124290 -0.3898150
 C -1.2459090 -0.4119140  0.3901890
@@ -52,9 +42,9 @@ H -3.1466880 -0.1516020 -0.5951030
 H -1.9518880  1.0995170 -0.9813430
 H -2.7739380  1.0977020  0.5893370
 symmetry C1
-"""
+""")
 
-mollib["h2_2"] =  """
+mol["h2_2"] = psi4.geometry("""
 H
 H 1 R
 H 1 D 2 P
@@ -65,9 +55,9 @@ D = 1.5
 P = 90.0
 T = 60.0
 symmetry c1
-"""
+""")
 
-mollib["h2_3"] =  """
+mol["h2_3"] = psi4.geometry("""
 H
 H 1 R
 H 1 D 2 P
@@ -81,9 +71,9 @@ P = 90.0
 T = 60.0
 X = 180.0
 symmetry c1
-"""
+""")
 
-mollib["h2_4"] =  """
+mol["h2_4"] = psi4.geometry("""
 H
 H 1 R
 H 1 D 2 P
@@ -99,9 +89,9 @@ P = 90.0
 T = 60.0
 X = 180.0
 symmetry c1
-"""
+""")
 
-mollib["h2_5"] =  """
+mol["h2_5"] = psi4.geometry("""
 H
 H 1 R
 H 1 D 2 P
@@ -119,9 +109,9 @@ P = 90.0
 T = 60.0
 X = 180.0
 symmetry c1
-"""
+""")
 
-mollib["h2_6"] =  """
+mol["h2_6"] = psi4.geometry("""
 H
 H 1 R
 H 1 D 2 P
@@ -141,9 +131,9 @@ P = 90.0
 T = 60.0
 X = 180.0
 symmetry c1
-"""
+""")
 
-mollib["h2_7"] =  """
+mol["h2_7"] = psi4.geometry("""
 H
 H 1 R
 H 1 D 2 P
@@ -165,10 +155,10 @@ P = 90.0
 T = 60.0
 X = 180.0
 symmetry c1
-"""
+""")
 
 # Geometry from Harley's cerebro area
-mollib['1-fluoro-propane'] =  """
+mol['1-fluoro-propane'] = psi4.geometry("""
 C
 H 1 B1
 C 1 B2 2 A1
@@ -209,10 +199,10 @@ A3  =  111.40071383
 A4  =  107.81289087
 D5  =  57.83253083
 symmetry c1
-"""
+""")
 
 # Geometry from Harley's cerebro area
-mollib['1-fluoro-pentane'] =  """
+mol['1-fluoro-pentane'] = psi4.geometry("""
 C
 C 1 B1
 H 2 B2 1 A1
@@ -277,10 +267,10 @@ A7  =  109.92499717
 A8  =  110.14209083
 A9  =  111.43453718
 symmetry c1
-"""
+""")
 
 # Geometry from Harley's cerebro area
-mollib['1-fluoro-heptane'] =  """
+mol['1-fluoro-heptane'] = psi4.geometry("""
 C
 C 1 B1
 H 2 B2 1 A1
@@ -369,10 +359,10 @@ A7  =  109.93095425
 A8  =  110.14645497
 A9  =  111.43526365
 symmetry c1   
-"""
+""")
 
 # Geometry from Harley's cerebro area
-mollib['S_1_phenylethanol'] =  """
+mol['S_1_phenylethanol'] = psi4.geometry("""
 C
 C 1 B1
 C 2 B2 1 A1
@@ -445,10 +435,10 @@ A7  =  120.11709223
 A8  =  120.20249318
 A9  =  119.76730779
 symmetry c1
-"""
+""")
 
 # OR45 (1R,4R)-Norbornenone Molecule 20
-mollib["norbornenone"] =  """
+mol["norbornenone"] = psi4.geometry("""
 C  1.1757860 -0.0069620 -0.0484540
 C -0.8100310 -1.2831360 -0.5280540
 C  0.1167890 -0.9119490  0.6298460
@@ -466,11 +456,11 @@ C -0.7412690  0.1667950  1.3346370
 H -1.6420920 -0.2528140  1.7856890
 H -0.1905180  0.7503100  2.0789600
 symmetry c1
-"""
+""")
 
 
 # OR45 (1R,5R)-beta-pinene Molecule 32
-mollib["beta-pinene"] =  """
+mol["beta-pinene"] = psi4.geometry("""
 C -1.0765220 -0.2835340  0.1959240
 C -0.7359440  1.2327740 -0.0281470
 C  0.5025910  1.6488230  0.7809710
@@ -498,10 +488,10 @@ H -1.0392650 -1.9781860  1.5427650
 H  1.9588160 -2.5001820 -0.7756160
 H  3.1864510 -1.5429480  0.2224840
 symmetry c1
-"""
+""")
 
 # B3LYP/aug-cc-pVTZ optimized structure 
-mollib["fluorooxirane"] =  """
+mol["fluorooxirane"] = psi4.geometry("""
 units Bohr
 C          0.2403332017           -0.0885103560            0.9274082395
 C         -1.9467968844            1.2009064480           -0.1231423794
@@ -512,6 +502,63 @@ H         -3.5435469826            1.6940643818            1.0604258094
 H         -1.6929812215            2.2889552787           -1.8383495383
 
 symmetry c1
-"""
+""")
 
+import sys
+import numpy as np
+sys.path.append('../')
+from helper_cc_pno import helper_ccenergy
+from helper_cc_pno import helper_cchbar
+from helper_cc_pno import helper_cclambda
+from pno_plus_plus_lg import *
+np.set_printoptions(precision=15, linewidth=200, suppress=True)
+#psi4.core.set_memory(int(2e9), False)
+psi4.set_memory(int(50e9), False)
+
+mol_name = sys.argv[1]
+density_type = sys.argv[2] 
+filt_singles = False
+if sys.argv[3] == "true":
+    filt_singles = True
+if filt_singles:
+    output_file = mol_name + '_' + density_type + '_singles_frozen' + '_' + sys.argv[4] + '.dat'
+else:
+    output_file = mol_name + '_' + density_type + '_' + sys.argv[4] + '.dat'
+
+psi4.core.set_output_file(output_file, False)
+
+psi4.set_options({'basis': 'aug-cc-pVDZ',
+                  'guess': 'sad',
+                  'scf_type': 'pk',
+                  'e_convergence': 1e-10,
+                  'd_convergence': 1e-10})
+psi4.set_num_threads(4)
+
+print('Computing RHF reference.')
+psi4.core.set_active_molecule(mol[mol_name])
+rhf_e, rhf_wfn = psi4.energy('SCF', return_wfn=True)  
+print('RHF Final Energy                          % 16.10f\n' % rhf_e)
+
+local_method = 'PNO'
+#cutoffs = [1e-7,5e-8,1e-8,5e-9,1e-9,5e-10,1e-10]
+#cutoffs = [1e-10,1e-11,1e-12,1e-13]
+#cutoffs = [1e-7]
+ext_D = guess_density_calculate(mol, rhf_e, rhf_wfn, 'CCSD', 0, 0, 0, 40)
+local_method = 'PNO'
+#cutoffs = [1e-5,1e-6,5e-7,1e-7,5e-8,1e-8,5e-9,1e-9,1e-10]
+cutoffs = [1e-5]
+for local_cutoff in cutoffs: 
+    optrot_calculate(mol[mol_name], rhf_e, rhf_wfn, 'CCSD', 50, 50, 50, local_method, local_cutoff, density_type, ext_D, filt_singles, 50)
+
+# Ex: python3 input.py h2_7 MUMU_D true cc2_1e_13
+
+
+#cc_wfn = helper_ccenergy(mol[sys.argv[1]], rhf_e, rhf_wfn, "PNO", 1e-7, 2)
+#cc_wfn.compute_energy(1e-8, 50)
+#CCcorr_E = cc_wfn.ccsd_corr_e
+#CC_E = cc_wfn.ccsd_e
+#
+#cchbar = helper_cchbar(cc_wfn)
+#cclambda = helper_cclambda(cc_wfn, cchbar)
+#cclambda.compute_lambda(1e-8, 50)
 

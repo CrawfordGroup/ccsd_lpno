@@ -63,6 +63,7 @@ class HelperPert(object):
 
         if local:
             self.x_ia, self.x_ijab = local.increment(self.make_Avo().swapaxes(0,1), self.pertbar_ijab, self.F_occ)
+            #self.x_ijab = local.increment(self.make_Avo().swapaxes(0,1), self.pertbar_ijab, self.F_occ)
         else:
             self.x_ia = self.make_Avo().swapaxes(0,1)/self.D_ia
             self.x_ijab = self.pertbar_ijab.copy()
@@ -180,9 +181,9 @@ class HelperPert(object):
 
         if local:
             inc1, inc2 = local.increment(r_ia, r_ijab, self.F_occ)
-            #inc2 = local.increment(r_ijab, self.F_occ)
-            new_xia += inc1
+            #inc2 = local.increment(r_ia, r_ijab, self.F_occ)
             #new_xia += r_ia/self.D_ia
+            new_xia += inc1
         else:    
             inc2 = r_ijab/self.D_ijab
             new_xia += r_ia/self.D_ia
@@ -356,7 +357,7 @@ class HelperPert(object):
 
         if local:
             inc1, inc2 = local.increment(r_ia, r_ijab, self.F_occ)
-            #inc2 = local.increment(r_ijab, self.F_occ)
+            #inc2 = local.increment(r_ia, r_ijab, self.F_occ)
             new_yia += inc1
             #new_yia += r_ia/self.D_ia
         else:    

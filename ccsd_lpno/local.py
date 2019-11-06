@@ -35,11 +35,14 @@ class HelperLocal(object):
             # Diagonalize pair densities to get PNOs (Q) and occ_nos
             occ_nos = np.zeros((self.no_occ * self.no_occ, self.no_vir))
             Q = np.zeros((self.no_occ * self.no_occ, self.no_vir, self.no_vir))
-            print("Average density: {}".format(D))
+            #print("Average density: {}".format(D[0]))
+            #print("numpy version: {}". format(np.__version__))
             for ij in range(self.no_occ * self.no_occ):
                 occ_nos[ij], Q[ij] = np.linalg.eigh(D[ij])
+                #if ij == 0:
+                #    print("Here's occ nums and Q: {}\n{}".format(occ_nos[ij], Q[ij]))
 
-            Q = np.load('Q_full.npy')
+            #Q_full = np.load('Q_full.npy')
             #print("The two Qs are the same: {}".format(np.allclose(Q_full, Q)))
             # Truncate each set of pnos by occ no
             s_pairs = np.zeros(self.no_occ * self.no_occ)
@@ -54,9 +57,10 @@ class HelperLocal(object):
                         s_pairs[ij] += 1
                 avg += s_pairs[ij]
                 rm_pairs = self.no_vir - int(s_pairs[ij])
-                Q_list.append(Q[ij, :, :int(s_pairs[ij])])
-                if ij == 0:
-                    print("Here's occ nums and Q: {}\n{}".format(occ_nos[ij], Q[ij, :, :rm_pairs]))
+                Q_list.append(Q[ij, :, rm_pairs:])
+                #if ij == 5:
+                #    print("Here's occ nums and Q: {}\n{}".format(occ_nos[ij], Q[ij]))
+                #    print("Here's occ nums and Q: {}\n{}".format(occ_nos[ij], Q[ij, :, rm_pairs:]))
             
             avg = avg/(self.no_occ * self.no_occ)
             print('Occupation numbers [0]:\n {}'.format(occ_nos[0]))
@@ -76,11 +80,10 @@ class HelperLocal(object):
                 eps_pno, L = np.linalg.eigh(F_pno)
                 eps_pno_list.append(eps_pno)
                 L_list.append(L)
-                if ij == 0:
-                    print("Here's L: {}".format(L))
+                #if ij == 0:
+                #    print("Here's L: {}".format(L))
 
             #print("The two Ls are the same: {}".format(np.allclose(L_full, L_list)))
-            #print('Q x L:\n{}\n'.format(Q @ L))
             return Q_list, L_list, eps_pno_list
 
     def pseudoresponse(self, z_ijab):
@@ -103,26 +106,28 @@ class HelperLocal(object):
             i = 0
             D = np.zeros((self.no_occ * self.no_occ, self.no_vir, self.no_vir))
             denom = Hbar_ii.reshape(-1, 1, 1, 1) + Hbar_ii.reshape(-1, 1, 1) - Hbar_aa.reshape(-1, 1) - Hbar_aa
+
             for A in A_list.values():
                 # Build guess Abar
                 # Abar_ijab = P_ij^ab (t_ij^eb A_ae - t_mj^ab A_mi)
                 Avvoo = contract('ijeb,ae->abij', t_ijab, A[self.no_occ:, self.no_occ:])
                 Avvoo -= contract('mjab,mi->abij', t_ijab, A[:self.no_occ, :self.no_occ])
                 Abar = Avvoo.swapaxes(0,2).swapaxes(1,3)
-                Abar += Avvoo.swapaxes(0,3).swapaxes(1,2)
-                #Abar = contract('ijeb,ae->ijab', t_ijab, A[self.no_occ:, self.no_occ:])
-                #Abar -= contract('mjab,mi->ijab', t_ijab, A[:self.no_occ, :self.no_occ])
-                #Abar += contract('jiea,be->ijab', t_ijab, A[self.no_occ:, self.no_occ:])
-                #Abar -= contract('miba,mj->ijab', t_ijab, A[:self.no_occ, :self.no_occ])
+                Abar += Abar.swapaxes(0,1).swapaxes(2,3)
 
                 # Build guess X's
                 # X_ijab = Abar_ijab / Hbar_ii + Hbar_jj - Hbar_aa _ Hbar_bb
                 X_guess[i] = Abar.copy()
                 X_guess[i] /= denom
+
                 D += self.form_density(X_guess[i])
-                #print("Density: {}".format(D))
                 i += 1
+            #print("X_guess [0]: {}".format(X_guess[0]))
             D /= 3.0
+            #D_check = np.load('Average_density.npy')
+            #print('Check density: {}'.format(D_check))
+            #print('Average density: {}'.format(D))
+            #print('The densities are the same: {} '.format(np.allclose(D, D_check)))
             # Identify weak pairs using MP2 pseudoresponse
             # requires the building of the guess Abar matrix and guess X's
             # Todo
@@ -138,7 +143,7 @@ class HelperLocal(object):
     #def increment(self, Rijab, F_occ): 
         # Q[i, b, a] is diff from Q[i, i, b, a]!
         # Update T1s
-        '''new_tia = np.zeros((self.no_occ, self.no_vir))
+        new_tia = np.zeros((self.no_occ, self.no_vir))
         for i in range(self.no_occ):
             tmp_Q = self.Q_list[i*self.no_occ+i]
             tmp_L = self.L_list[i*self.no_occ+i]
@@ -158,16 +163,16 @@ class HelperLocal(object):
             T1Q = contract('ab,b->a', tmp_L, T1QL)
             # Back transform to Ts
             new_tia[i] += contract('ab,b->a', tmp_Q, T1Q)
-       '''
+       
         # Update T2s
         new_tijab = np.zeros((self.no_occ, self.no_occ, self.no_vir, self.no_vir))
         for ij in range(self.no_occ * self.no_occ):
             tmp1 = self.Q_list[ij]
             # Transform Rs using Q
-            R2Q = contract('ac,ab,bd->cd', tmp1, Rijab[ij // self.no_occ, ij % self.no_occ], tmp1)
+            R2Q = contract('ca,ab,bd->cd', tmp1.T, Rijab[ij // self.no_occ, ij % self.no_occ], tmp1)
             # Transform RQs using L
             tmp2 = self.L_list[ij]
-            R2QL = contract('ac,ab,bd->cd', tmp2, R2Q, tmp2)
+            R2QL = contract('ca,ab,bd->cd', tmp2.T, R2Q, tmp2)
             # Use vir orb. energies from semicanonical
             tmp3 = self.eps_pno_list[ij]
             d2_QL = np.zeros((tmp3.shape[0], tmp3.shape[0]))
@@ -177,9 +182,9 @@ class HelperLocal(object):
             #print('denom in semi-canonical PNO basis:\n{}\n'.format(d_QL.shape))
             T2QL = R2QL / d2_QL
             # Back transform to TQs
-            T2Q = contract('ca,ab,db->cd', tmp2, T2QL, tmp2)
+            T2Q = contract('ca,ab,bd->cd', tmp2, T2QL, tmp2.T)
             # Back transform to Ts
-            new_tijab[ij // self.no_occ, ij % self.no_occ] += contract('ca,ab,db->cd', tmp1, T2Q, tmp1)
+            new_tijab[ij // self.no_occ, ij % self.no_occ] += contract('ca,ab,bd->cd', tmp1, T2Q, tmp1.T)
             
-        #return new_tia, new_tijab
-        return new_tijab
+        return new_tia, new_tijab
+        #return new_tijab
