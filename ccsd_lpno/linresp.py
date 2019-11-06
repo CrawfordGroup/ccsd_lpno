@@ -23,6 +23,8 @@ def do_linresp(wfn, omega_nm, mol, method='polar', gauge='length', localize=Fals
     if localize:
         no_vir = wfn.nmo() - wfn.doccpi()[0] - wfn.frzcpi()[0]
         local = HelperLocal(wfn.doccpi()[0], no_vir)
+    else:
+        local=None
 
     # Create Helper_CCenergy object
     hcc = HelperCCEnergy(wfn, local=local, pert=pert, pno_cut=pno_cut) 

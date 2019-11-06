@@ -41,7 +41,7 @@ def test_polar():
 
     # Set for LPNO
     #local=True
-    local=None
+    local=False
     pno_cut = 0.0
 
     # Set for polarizability calculation
@@ -56,7 +56,7 @@ def test_polar():
     print('Nuclear repulsion energy: {}\n'.format(mol.nuclear_repulsion_energy()))
 
     # Create Helper_CCenergy object
-    polarizability = ccsd_lpno.do_linresp(wfn, omega_nm, mol, local=local, pno_cut=pno_cut) 
+    polarizability = ccsd_lpno.do_linresp(wfn, omega_nm, mol, method='polar', localize=local, pno_cut=pno_cut) 
 
     # Comaprison with Psi4
     psi4.set_options({'d_convergence': 1e-10})
