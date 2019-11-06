@@ -386,9 +386,9 @@ class HelperCCEnergy(object):
 
         :param local: Object containing the increment function for local correlation calculations
         :type local: class 'ccsd_lpno.HelperLocal'
-        :param e_conv: Convergence threshold for energy
+        :param e_conv: Convergence threshold for pseudoenergy
         :type e_conv: double
-        :param r_conv: Convergence threshold for T-amplitude RMSDs
+        :param r_conv: Convergence threshold for Lambda RMSDs
         :type r_conv: double
         :param maxiter: Maximum no. of iterations
         :type maxiter: integer
@@ -397,7 +397,8 @@ class HelperCCEnergy(object):
         :param start_diis: Which iteration to start storing error vectors for DIIS
         :type start_diis: integer
 
-        :return: Converged CCSD energy
+        :return: Converged pseudoenergy
+        :rtype: double
         '''
         print('Iteration\t\t Correlation energy\tDifference\tRMS\nMP2\t\t\t {}'.format(self.old_e))
     # Set up DIIS

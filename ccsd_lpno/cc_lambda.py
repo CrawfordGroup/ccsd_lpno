@@ -11,6 +11,17 @@ from .diis import *
 from opt_einsum import contract
 
 class HelperLambda(object):
+    '''
+    Class for setting up and running a left hand CCSD amplitude calculation.
+
+    Spin-adapted equations using an RHF wavefunction.
+    Need to instantiate the object and then call the iterate() function
+
+    :param hcc: HelperCCEnergy object returned from CCSD calculation
+    :type hcc: class 'ccsd_lpno.HelperCCEnergy'
+    :param hbar: HelperHbar object instantiated using cc_hbar
+    :type hbar: class 'ccsd_lpno.HelperHbar'
+    '''
     def __init__(self, hcc, hbar):
 
         # Get fock matrix, ERIs, T amplitudes from CCSD
@@ -60,7 +71,19 @@ class HelperLambda(object):
         return Gvv
 
     def update_ls(self, l_ia, l_ijab, local=None):
+        '''
+        Update L1 and L2 amplitudes
 
+        :param l_ia: Previous iteration's L1 amplitudes
+        :type l_ia: numpy array
+        :param l_ijab: Previous iteration's L2 amplitudes
+        :type l_ijab: numpy array
+        :param local: Object containing the increment function for local correlation calculations
+        :type local: class 'ccsd_lpno.HelperLocal'
+
+        :returns: Updated L1 and L2 amplitudes
+        :rtype: numpy arrays
+        '''
         Gvv = self.make_Gvv()
         Goo = self.make_Goo()
 
@@ -120,6 +143,15 @@ class HelperLambda(object):
         return new_lia, new_lijab
 
     def pseudo_energy(self, l_ijab):
+        '''
+        Compute the CCSD pseudoenergy
+
+        :param l_ijab: Current iteration T2
+        :type l_ijab: numpy array
+
+        :return: pseudoenergy
+        :rtype: double
+        '''
         o = slice(0, self.no_occ)
         v = slice(self.no_occ, self.no_mo)
         # E = 1/2 <ab|ij> l_ijab
@@ -127,6 +159,25 @@ class HelperLambda(object):
         return E_pseudo
 
     def iterate(self, local=None, e_conv=1e-8, r_conv=1e-7, maxiter=40, max_diis=8, start_diis=0):
+        '''
+        Do Lambda iterations with DIIS and local options
+
+        :param local: Object containing the increment function for local correlation calculations
+        :type local: class 'ccsd_lpno.HelperLocal'
+        :param e_conv: Convergence threshold for energy
+        :type e_conv: double
+        :param r_conv: Convergence threshold for T-amplitude RMSDs
+        :type r_conv: double
+        :param maxiter: Maximum no. of iterations
+        :type maxiter: integer
+        :param max_diis: Maximum no. of error vectors stored for DIIS
+        :type max_diis: integer
+        :param start_diis: Which iteration to start storing error vectors for DIIS
+        :type start_diis: integer
+
+        :return: Converged CCSD energy
+        :rtype: double
+        '''
         self.old_pe = self.pseudo_energy(self.l_ijab)
         print('Iteration\t\t Pseudoenergy\t\tDifference\tRMS')
         # Set up DIIS
