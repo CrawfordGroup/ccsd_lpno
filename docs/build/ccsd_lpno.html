@@ -1,0 +1,565 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>ccsd_lpno package &#8212; CCSD-LPNO Response code 0.1 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="ccsd-lpno-package">
+<h1>ccsd_lpno package<a class="headerlink" href="#ccsd-lpno-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-ccsd_lpno.cc_hbar">
+<span id="ccsd-lpno-cc-hbar-module"></span><h2>ccsd_lpno.cc_hbar module<a class="headerlink" href="#module-ccsd_lpno.cc_hbar" title="Permalink to this headline">¶</a></h2>
+<p>HelperHbar class definition and function definitions
+For building spin-adapted CC Hbar matrix elements</p>
+<dl class="class">
+<dt id="ccsd_lpno.cc_hbar.HelperHbar">
+<em class="property">class </em><code class="sig-prename descclassname">ccsd_lpno.cc_hbar.</code><code class="sig-name descname">HelperHbar</code><span class="sig-paren">(</span><em class="sig-param">hcc</em>, <em class="sig-param">ccsd_e</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_hbar.HelperHbar" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="ccsd_lpno.cc_hbar.HelperHbar.make_Hoo">
+<code class="sig-name descname">make_Hoo</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_hbar.HelperHbar.make_Hoo" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_hbar.HelperHbar.make_Hoooo">
+<code class="sig-name descname">make_Hoooo</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_hbar.HelperHbar.make_Hoooo" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_hbar.HelperHbar.make_Hooov">
+<code class="sig-name descname">make_Hooov</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_hbar.HelperHbar.make_Hooov" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_hbar.HelperHbar.make_Hov">
+<code class="sig-name descname">make_Hov</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_hbar.HelperHbar.make_Hov" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_hbar.HelperHbar.make_Hovoo">
+<code class="sig-name descname">make_Hovoo</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_hbar.HelperHbar.make_Hovoo" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_hbar.HelperHbar.make_Hovov">
+<code class="sig-name descname">make_Hovov</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_hbar.HelperHbar.make_Hovov" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_hbar.HelperHbar.make_Hovvo">
+<code class="sig-name descname">make_Hovvo</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_hbar.HelperHbar.make_Hovvo" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_hbar.HelperHbar.make_Hvovv">
+<code class="sig-name descname">make_Hvovv</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_hbar.HelperHbar.make_Hvovv" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_hbar.HelperHbar.make_Hvv">
+<code class="sig-name descname">make_Hvv</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_hbar.HelperHbar.make_Hvv" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_hbar.HelperHbar.make_Hvvvo">
+<code class="sig-name descname">make_Hvvvo</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_hbar.HelperHbar.make_Hvvvo" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_hbar.HelperHbar.make_Hvvvv">
+<code class="sig-name descname">make_Hvvvv</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_hbar.HelperHbar.make_Hvvvv" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_hbar.HelperHbar.make_Lamef">
+<code class="sig-name descname">make_Lamef</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_hbar.HelperHbar.make_Lamef" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_hbar.HelperHbar.make_Lmnef">
+<code class="sig-name descname">make_Lmnef</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_hbar.HelperHbar.make_Lmnef" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_hbar.HelperHbar.make_Lmnie">
+<code class="sig-name descname">make_Lmnie</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_hbar.HelperHbar.make_Lmnie" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-ccsd_lpno.cc_lambda">
+<span id="ccsd-lpno-cc-lambda-module"></span><h2>ccsd_lpno.cc_lambda module<a class="headerlink" href="#module-ccsd_lpno.cc_lambda" title="Permalink to this headline">¶</a></h2>
+<p>HelperLambda class definition and function definitions
+For iteratively solving for lambda lagrangian multipliers
+After completing a CCSD calculation and building Hbar matrix elements</p>
+<dl class="class">
+<dt id="ccsd_lpno.cc_lambda.HelperLambda">
+<em class="property">class </em><code class="sig-prename descclassname">ccsd_lpno.cc_lambda.</code><code class="sig-name descname">HelperLambda</code><span class="sig-paren">(</span><em class="sig-param">hcc</em>, <em class="sig-param">hbar</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_lambda.HelperLambda" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="ccsd_lpno.cc_lambda.HelperLambda.iterate">
+<code class="sig-name descname">iterate</code><span class="sig-paren">(</span><em class="sig-param">local=None</em>, <em class="sig-param">e_conv=1e-08</em>, <em class="sig-param">r_conv=1e-07</em>, <em class="sig-param">maxiter=40</em>, <em class="sig-param">max_diis=8</em>, <em class="sig-param">start_diis=0</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_lambda.HelperLambda.iterate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_lambda.HelperLambda.make_Goo">
+<code class="sig-name descname">make_Goo</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_lambda.HelperLambda.make_Goo" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_lambda.HelperLambda.make_Gvv">
+<code class="sig-name descname">make_Gvv</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_lambda.HelperLambda.make_Gvv" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_lambda.HelperLambda.pseudo_energy">
+<code class="sig-name descname">pseudo_energy</code><span class="sig-paren">(</span><em class="sig-param">l_ijab</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_lambda.HelperLambda.pseudo_energy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_lambda.HelperLambda.update_ls">
+<code class="sig-name descname">update_ls</code><span class="sig-paren">(</span><em class="sig-param">l_ia</em>, <em class="sig-param">l_ijab</em>, <em class="sig-param">local=None</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_lambda.HelperLambda.update_ls" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-ccsd_lpno.cc_pert">
+<span id="ccsd-lpno-cc-pert-module"></span><h2>ccsd_lpno.cc_pert module<a class="headerlink" href="#module-ccsd_lpno.cc_pert" title="Permalink to this headline">¶</a></h2>
+<p>HelperPert class definition and function definitions
+For iteratively solving for first order T amplitudes 
+and first order lagrangian multipliers, then solving
+for the linear response function for two given 
+perturbations, after completing a CCSD calculation and
+building Hbar matrix elements, lambdas</p>
+<dl class="class">
+<dt id="ccsd_lpno.cc_pert.HelperPert">
+<em class="property">class </em><code class="sig-prename descclassname">ccsd_lpno.cc_pert.</code><code class="sig-name descname">HelperPert</code><span class="sig-paren">(</span><em class="sig-param">ccsd</em>, <em class="sig-param">hbar</em>, <em class="sig-param">lda</em>, <em class="sig-param">A</em>, <em class="sig-param">omega</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_pert.HelperPert" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="ccsd_lpno.cc_pert.HelperPert.inhomogeneous_ys">
+<code class="sig-name descname">inhomogeneous_ys</code><span class="sig-paren">(</span><em class="sig-param">x_ia</em>, <em class="sig-param">x_ijab</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_pert.HelperPert.inhomogeneous_ys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_pert.HelperPert.iterate">
+<code class="sig-name descname">iterate</code><span class="sig-paren">(</span><em class="sig-param">hand</em>, <em class="sig-param">local=None</em>, <em class="sig-param">r_conv=1e-07</em>, <em class="sig-param">maxiter=100</em>, <em class="sig-param">max_diis=8</em>, <em class="sig-param">start_diis=0</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_pert.HelperPert.iterate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_pert.HelperPert.make_Aoo">
+<code class="sig-name descname">make_Aoo</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_pert.HelperPert.make_Aoo" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_pert.HelperPert.make_Aov">
+<code class="sig-name descname">make_Aov</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_pert.HelperPert.make_Aov" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_pert.HelperPert.make_Aovoo">
+<code class="sig-name descname">make_Aovoo</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_pert.HelperPert.make_Aovoo" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_pert.HelperPert.make_Avo">
+<code class="sig-name descname">make_Avo</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_pert.HelperPert.make_Avo" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_pert.HelperPert.make_Avv">
+<code class="sig-name descname">make_Avv</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_pert.HelperPert.make_Avv" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_pert.HelperPert.make_Avvoo">
+<code class="sig-name descname">make_Avvoo</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_pert.HelperPert.make_Avvoo" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_pert.HelperPert.make_Avvvo">
+<code class="sig-name descname">make_Avvvo</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_pert.HelperPert.make_Avvvo" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_pert.HelperPert.make_Goo">
+<code class="sig-name descname">make_Goo</code><span class="sig-paren">(</span><em class="sig-param">t_ijab</em>, <em class="sig-param">l_ijab</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_pert.HelperPert.make_Goo" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_pert.HelperPert.make_Gvv">
+<code class="sig-name descname">make_Gvv</code><span class="sig-paren">(</span><em class="sig-param">t_ijab</em>, <em class="sig-param">l_ijab</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_pert.HelperPert.make_Gvv" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_pert.HelperPert.make_Zoo">
+<code class="sig-name descname">make_Zoo</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_pert.HelperPert.make_Zoo" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_pert.HelperPert.make_Zvv">
+<code class="sig-name descname">make_Zvv</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_pert.HelperPert.make_Zvv" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_pert.HelperPert.pseudo_response">
+<code class="sig-name descname">pseudo_response</code><span class="sig-paren">(</span><em class="sig-param">z_ia</em>, <em class="sig-param">z_ijab</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_pert.HelperPert.pseudo_response" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_pert.HelperPert.update_xs">
+<code class="sig-name descname">update_xs</code><span class="sig-paren">(</span><em class="sig-param">x_ia</em>, <em class="sig-param">x_ijab</em>, <em class="sig-param">local=None</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_pert.HelperPert.update_xs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.cc_pert.HelperPert.update_ys">
+<code class="sig-name descname">update_ys</code><span class="sig-paren">(</span><em class="sig-param">y_ia</em>, <em class="sig-param">y_ijab</em>, <em class="sig-param">local=None</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_pert.HelperPert.update_ys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="ccsd_lpno.cc_pert.HelperResp">
+<em class="property">class </em><code class="sig-prename descclassname">ccsd_lpno.cc_pert.</code><code class="sig-name descname">HelperResp</code><span class="sig-paren">(</span><em class="sig-param">lda</em>, <em class="sig-param">B</em>, <em class="sig-param">pertA</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_pert.HelperResp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="ccsd_lpno.cc_pert.HelperResp.linear_resp">
+<code class="sig-name descname">linear_resp</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_pert.HelperResp.linear_resp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-ccsd_lpno.diis">
+<span id="ccsd-lpno-diis-module"></span><h2>ccsd_lpno.diis module<a class="headerlink" href="#module-ccsd_lpno.diis" title="Permalink to this headline">¶</a></h2>
+<p>DIIS Helper class definitions and function definitions
+For DIIS extrapolation in CCSD</p>
+<dl class="class">
+<dt id="ccsd_lpno.diis.HelperDIIS">
+<em class="property">class </em><code class="sig-prename descclassname">ccsd_lpno.diis.</code><code class="sig-name descname">HelperDIIS</code><span class="sig-paren">(</span><em class="sig-param">t_ia</em>, <em class="sig-param">t_ijab</em>, <em class="sig-param">max_diis</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.diis.HelperDIIS" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="ccsd_lpno.diis.HelperDIIS.extrapolate">
+<code class="sig-name descname">extrapolate</code><span class="sig-paren">(</span><em class="sig-param">t_ia</em>, <em class="sig-param">t_ijab</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.diis.HelperDIIS.extrapolate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.diis.HelperDIIS.update_err_list">
+<code class="sig-name descname">update_err_list</code><span class="sig-paren">(</span><em class="sig-param">t_ia</em>, <em class="sig-param">t_ijab</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.diis.HelperDIIS.update_err_list" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-ccsd_lpno.helper_cc">
+<span id="ccsd-lpno-helper-cc-module"></span><h2>ccsd_lpno.helper_cc module<a class="headerlink" href="#module-ccsd_lpno.helper_cc" title="Permalink to this headline">¶</a></h2>
+<p>HelperCCEnergy class definition and function definitions
+For RHF CCSD calculations
+Includes localization via a HelperLocal class</p>
+<dl class="class">
+<dt id="ccsd_lpno.helper_cc.HelperCCEnergy">
+<em class="property">class </em><code class="sig-prename descclassname">ccsd_lpno.helper_cc.</code><code class="sig-name descname">HelperCCEnergy</code><span class="sig-paren">(</span><em class="sig-param">rhf_wfn</em>, <em class="sig-param">local=None</em>, <em class="sig-param">pert=False</em>, <em class="sig-param">pno_cut=0</em>, <em class="sig-param">e_cut=1e-08</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.helper_cc.HelperCCEnergy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Class for setting up and running a CCSD correlation energy calculation.</p>
+<p>Spin-adapted equations using an RHF wavefunction.
+Need to instantiate the object and then call the do_cc() function</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rhf_wfn</strong> (<em>class 'psi4.core.RHF'</em>) – Psi4 wavefunction returned from RHF calculation</p></li>
+<li><p><strong>local</strong> (<em>class 'ccsd_lpno.HelperLocal'</em>) – Object containing functions for local correlation calculations</p></li>
+<li><p><strong>pert</strong> (<em>bool</em>) – Flag to use perturbed density (density is currently hardcoded)</p></li>
+<li><p><strong>pno_cut</strong> (<em>double</em>) – Occupation number cutoff for truncating PNO space</p></li>
+<li><p><strong>e_cut</strong> (<em>double</em>) – Weak pair cutoff for truncation of occupied pairs</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="ccsd_lpno.helper_cc.HelperCCEnergy.corr_energy">
+<code class="sig-name descname">corr_energy</code><span class="sig-paren">(</span><em class="sig-param">t_ia</em>, <em class="sig-param">t_ijab</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.helper_cc.HelperCCEnergy.corr_energy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute CCSD correlation energy</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>t_ia</strong> (<em>numpy array</em>) – T1 used for corr energy calculation</p></li>
+<li><p><strong>t_ijab</strong> (<em>numpy array</em>) – T2 used for corr energy calculation</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>correlation energy</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>double</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.helper_cc.HelperCCEnergy.do_CC">
+<code class="sig-name descname">do_CC</code><span class="sig-paren">(</span><em class="sig-param">local=None</em>, <em class="sig-param">e_conv=1e-08</em>, <em class="sig-param">r_conv=1e-07</em>, <em class="sig-param">maxiter=40</em>, <em class="sig-param">max_diis=8</em>, <em class="sig-param">start_diis=0</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.helper_cc.HelperCCEnergy.do_CC" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.helper_cc.HelperCCEnergy.make_Fae">
+<code class="sig-name descname">make_Fae</code><span class="sig-paren">(</span><em class="sig-param">taut</em>, <em class="sig-param">t_ia</em>, <em class="sig-param">t_ijab</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.helper_cc.HelperCCEnergy.make_Fae" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.helper_cc.HelperCCEnergy.make_Fme">
+<code class="sig-name descname">make_Fme</code><span class="sig-paren">(</span><em class="sig-param">t_ia</em>, <em class="sig-param">t_ijab</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.helper_cc.HelperCCEnergy.make_Fme" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.helper_cc.HelperCCEnergy.make_Fmi">
+<code class="sig-name descname">make_Fmi</code><span class="sig-paren">(</span><em class="sig-param">taut</em>, <em class="sig-param">t_ia</em>, <em class="sig-param">t_ijab</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.helper_cc.HelperCCEnergy.make_Fmi" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.helper_cc.HelperCCEnergy.make_Wmbej">
+<code class="sig-name descname">make_Wmbej</code><span class="sig-paren">(</span><em class="sig-param">t_ia</em>, <em class="sig-param">t_ijab</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.helper_cc.HelperCCEnergy.make_Wmbej" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.helper_cc.HelperCCEnergy.make_Wmbje">
+<code class="sig-name descname">make_Wmbje</code><span class="sig-paren">(</span><em class="sig-param">t_ia</em>, <em class="sig-param">t_ijab</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.helper_cc.HelperCCEnergy.make_Wmbje" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.helper_cc.HelperCCEnergy.make_Wmnij">
+<code class="sig-name descname">make_Wmnij</code><span class="sig-paren">(</span><em class="sig-param">tau</em>, <em class="sig-param">t_ia</em>, <em class="sig-param">t_ijab</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.helper_cc.HelperCCEnergy.make_Wmnij" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.helper_cc.HelperCCEnergy.make_Zmbij">
+<code class="sig-name descname">make_Zmbij</code><span class="sig-paren">(</span><em class="sig-param">tau</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.helper_cc.HelperCCEnergy.make_Zmbij" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.helper_cc.HelperCCEnergy.make_tau">
+<code class="sig-name descname">make_tau</code><span class="sig-paren">(</span><em class="sig-param">t_ia</em>, <em class="sig-param">t_ijab</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.helper_cc.HelperCCEnergy.make_tau" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.helper_cc.HelperCCEnergy.make_taut">
+<code class="sig-name descname">make_taut</code><span class="sig-paren">(</span><em class="sig-param">t_ia</em>, <em class="sig-param">t_ijab</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.helper_cc.HelperCCEnergy.make_taut" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.helper_cc.HelperCCEnergy.update_ts">
+<code class="sig-name descname">update_ts</code><span class="sig-paren">(</span><em class="sig-param">tau</em>, <em class="sig-param">tau_t</em>, <em class="sig-param">t_ia</em>, <em class="sig-param">t_ijab</em>, <em class="sig-param">local=None</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.helper_cc.HelperCCEnergy.update_ts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update T1 and T2 amplitudes</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tau</strong> (<em>numpy array</em>) – T + 1/2 (T1^2)</p></li>
+<li><p><strong>tau_t</strong> (<em>numpy array</em>) – tau^+</p></li>
+<li><p><strong>t_ia</strong> (<em>numpy array</em>) – old T1 amplitude to be used in the residual equations</p></li>
+<li><p><strong>t_ijab</strong> (<em>numpy array</em>) – old T2 amplitude to be used in the residual equations</p></li>
+<li><p><strong>local</strong> (<em>class 'ccsd_lpno.HelperLocal'</em>) – Object containing the increment function for local correlation calculations</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Updated T1 and T2 amplitudes</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>numpy arrays</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-ccsd_lpno.linresp">
+<span id="ccsd-lpno-linresp-module"></span><h2>ccsd_lpno.linresp module<a class="headerlink" href="#module-ccsd_lpno.linresp" title="Permalink to this headline">¶</a></h2>
+<p>Computing the CCSD-LR dipole polarizability  using an RHF reference
+References used:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference external" href="http://github.com/CrawfordGroup/ProgrammingProjects">http://github.com/CrawfordGroup/ProgrammingProjects</a></p></li>
+<li><p>Stanton:1991:4334</p></li>
+<li><p><a class="reference external" href="https://github.com/psi4/psi4numpy">https://github.com/psi4/psi4numpy</a></p></li>
+</ul>
+</div></blockquote>
+<dl class="function">
+<dt id="ccsd_lpno.linresp.do_linresp">
+<code class="sig-prename descclassname">ccsd_lpno.linresp.</code><code class="sig-name descname">do_linresp</code><span class="sig-paren">(</span><em class="sig-param">wfn</em>, <em class="sig-param">omega_nm</em>, <em class="sig-param">mol</em>, <em class="sig-param">method='polar'</em>, <em class="sig-param">gauge='length'</em>, <em class="sig-param">local=None</em>, <em class="sig-param">pno_cut=0</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.linresp.do_linresp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-ccsd_lpno.local">
+<span id="ccsd-lpno-local-module"></span><h2>ccsd_lpno.local module<a class="headerlink" href="#module-ccsd_lpno.local" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="ccsd_lpno.local.HelperLocal">
+<em class="property">class </em><code class="sig-prename descclassname">ccsd_lpno.local.</code><code class="sig-name descname">HelperLocal</code><span class="sig-paren">(</span><em class="sig-param">no_occ</em>, <em class="sig-param">no_vir</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.local.HelperLocal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="ccsd_lpno.local.HelperLocal.build_PNO_lists">
+<code class="sig-name descname">build_PNO_lists</code><span class="sig-paren">(</span><em class="sig-param">pno_cut</em>, <em class="sig-param">D</em>, <em class="sig-param">F_vir</em>, <em class="sig-param">str_pair_list=None</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.local.HelperLocal.build_PNO_lists" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.local.HelperLocal.form_density">
+<code class="sig-name descname">form_density</code><span class="sig-paren">(</span><em class="sig-param">t_ijab</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.local.HelperLocal.form_density" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.local.HelperLocal.increment">
+<code class="sig-name descname">increment</code><span class="sig-paren">(</span><em class="sig-param">Rijab</em>, <em class="sig-param">F_occ</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.local.HelperLocal.increment" title="Permalink to this definition">¶</a></dt>
+<dd><p>for i in range(no_occ):
+tmp_Q = Q_list[i*no_occ+i]
+tmp_L = L_list[i*no_occ+i]
+# Transform Rs using Q
+R1Q = contract(‘b,ba-&gt;a’, Ria[i], tmp_Q)
+# Transform RQs using L
+R1QL = contract(‘b,ba-&gt;a’, R1Q, tmp_L)
+tmp3 = self.eps_pno_list[i*no_occ+i]
+# Use vir orb. energies from semicanonical
+d1_QL = np.zeros(tmp3.shape[0])
+for a in range(tmp3.shape[0]):</p>
+<blockquote>
+<div><p>d1_QL[a] = self.F_occ[i, i] - tmp3[a]</p>
+</div></blockquote>
+<p>T1QL = R1QL / d1_QL
+# Back transform to TQs
+T1Q = contract(‘ab,b-&gt;a’, tmp_L, T1QL)
+# Back transform to Ts
+new_tia[i] += contract(‘ab,b-&gt;a’, tmp_Q, T1Q)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.local.HelperLocal.init_PNOs">
+<code class="sig-name descname">init_PNOs</code><span class="sig-paren">(</span><em class="sig-param">pno_cut</em>, <em class="sig-param">t_ijab</em>, <em class="sig-param">F_vir</em>, <em class="sig-param">pert=False</em>, <em class="sig-param">str_pair_list=None</em>, <em class="sig-param">A_list=None</em>, <em class="sig-param">Hbar=None</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.local.HelperLocal.init_PNOs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ccsd_lpno.local.HelperLocal.pseudoresponse">
+<code class="sig-name descname">pseudoresponse</code><span class="sig-paren">(</span><em class="sig-param">z_ijab</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.local.HelperLocal.pseudoresponse" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-ccsd_lpno.mollib">
+<span id="ccsd-lpno-mollib-module"></span><h2>ccsd_lpno.mollib module<a class="headerlink" href="#module-ccsd_lpno.mollib" title="Permalink to this headline">¶</a></h2>
+<p>Molecule library to enable easier testing
+Works with current Psi4</p>
+</div>
+<div class="section" id="module-ccsd_lpno.ndot">
+<span id="ccsd-lpno-ndot-module"></span><h2>ccsd_lpno.ndot module<a class="headerlink" href="#module-ccsd_lpno.ndot" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="ccsd_lpno.ndot.ndot">
+<code class="sig-prename descclassname">ccsd_lpno.ndot.</code><code class="sig-name descname">ndot</code><span class="sig-paren">(</span><em class="sig-param">input_string</em>, <em class="sig-param">op1</em>, <em class="sig-param">op2</em>, <em class="sig-param">prefactor=None</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.ndot.ndot" title="Permalink to this definition">¶</a></dt>
+<dd><p>No checks, if you get weird errors its up to you to debug.</p>
+<p>ndot(‘abcd,cdef-&gt;abef’, arr1, arr2)</p>
+</dd></dl>
+
+</div>
+<div class="section" id="ccsd-lpno-new-test-module">
+<h2>ccsd_lpno.new_test module<a class="headerlink" href="#ccsd-lpno-new-test-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-ccsd_lpno.test_psi4">
+<span id="ccsd-lpno-test-psi4-module"></span><h2>ccsd_lpno.test_psi4 module<a class="headerlink" href="#module-ccsd_lpno.test_psi4" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="ccsd-lpno-test-ucc-module">
+<h2>ccsd_lpno.test_ucc module<a class="headerlink" href="#ccsd-lpno-test-ucc-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-ccsd_lpno">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-ccsd_lpno" title="Permalink to this headline">¶</a></h2>
+<p>Primary init</p>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">CCSD-LPNO Response code</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, Ruhee D'Cunha.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.2.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/ccsd_lpno.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

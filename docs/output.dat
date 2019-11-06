@@ -1,0 +1,503 @@
+
+*** tstart() called on Ruhees-MacBook-Pro.local
+*** at Tue Oct 15 16:21:12 2019
+
+   => Loading Basis Set <=
+
+    Name: AUG-CC-PVDZ
+    Role: ORBITAL
+    Keyword: BASIS
+    atoms 1-8 entry H          line    40 file /Users/ruheedcunha/Desktop/playground/psi4/share/psi4/basis/aug-cc-pvdz.gbs 
+
+
+         ---------------------------------------------------------
+                                   SCF
+               by Justin Turney, Rob Parrish, Andy Simmonett
+                          and Daniel G. A. Smith
+                              RHF Reference
+                        1 Threads,   1907 MiB Core
+         ---------------------------------------------------------
+
+  ==> Geometry <==
+
+    Molecular point group: c1
+    Full point group: C2
+
+    Geometry (in Angstrom), charge = 0, multiplicity = 1:
+
+       Center              X                  Y                   Z               Mass       
+    ------------   -----------------  -----------------  -----------------  -----------------
+         H            2.250000000000     0.000000000000    -0.162379763210     1.007825032230
+         H            2.250000000000    -0.750000000000    -0.162379763210     1.007825032230
+         H            0.750000000000     0.000000000000    -0.162379763210     1.007825032230
+         H            0.750000000000    -0.375000000000     0.487139289629     1.007825032230
+         H           -0.750000000000     0.000000000000    -0.162379763210     1.007825032230
+         H           -0.750000000000     0.375000000000     0.487139289629     1.007825032230
+         H           -2.250000000000     0.000000000000    -0.162379763210     1.007825032230
+         H           -2.250000000000     0.750000000000    -0.162379763210     1.007825032230
+
+  Running in c1 symmetry.
+
+  Rotational constants: A =     12.59515  B =      0.70151  C =      0.69968 [cm^-1]
+  Rotational constants: A = 377593.17195  B =  21030.79889  C =  20975.89988 [MHz]
+  Nuclear repulsion =    8.542666360353197
+
+  Charge       = 0
+  Multiplicity = 1
+  Electrons    = 8
+  Nalpha       = 4
+  Nbeta        = 4
+
+  ==> Algorithm <==
+
+  SCF Algorithm Type is PK.
+  DIIS enabled.
+  MOM disabled.
+  Fractional occupation disabled.
+  Guess Type is SAD.
+  Energy threshold   = 1.00e-10
+  Density threshold  = 1.00e-10
+  Integral threshold = 0.00e+00
+
+  ==> Primary Basis <==
+
+  Basis Set: AUG-CC-PVDZ
+    Blend: AUG-CC-PVDZ
+    Number of shells: 40
+    Number of basis function: 72
+    Number of Cartesian functions: 72
+    Spherical Harmonics?: true
+    Max angular momentum: 1
+
+  ==> Pre-Iterations <==
+
+   -------------------------------------------------------
+    Irrep   Nso     Nmo     Nalpha   Nbeta   Ndocc  Nsocc
+   -------------------------------------------------------
+     A         72      72       0       0       0       0
+   -------------------------------------------------------
+    Total      72      72       4       4       4       0
+   -------------------------------------------------------
+
+  ==> Integral Setup <==
+
+  Using in-core PK algorithm.
+   Calculation information:
+      Number of atoms:                   8
+      Number of AO shells:              40
+      Number of primitives:             56
+      Number of atomic orbitals:        72
+      Number of basis functions:        72
+
+      Integral cutoff                 1.00e-12
+      Number of threads:                 1
+
+  Performing in-core PK
+  Using 6909012 doubles for integral storage.
+  We computed 335798 shell quartets total.
+  Whereas there are 336610 unique shell quartets.
+
+  ==> DiskJK: Disk-Based J/K Matrices <==
+
+    J tasked:                  Yes
+    K tasked:                  Yes
+    wK tasked:                  No
+    Memory [MiB]:             1430
+    Schwarz Cutoff:          1E-12
+
+    OpenMP threads:              1
+
+  Minimum eigenvalue in the overlap matrix is 1.3694863242E-04.
+  Using Symmetric Orthogonalization.
+
+  SCF Guess: Superposition of Atomic Densities via on-the-fly atomic UHF.
+
+  ==> Iterations <==
+
+                        Total Energy        Delta E     RMS |[F,P]|
+
+   @RHF iter SAD:    -3.99708061457249   -3.99708e+00   0.00000e+00 
+   @RHF iter   1:    -4.33679136450311   -3.39711e-01   1.86922e-03 DIIS
+   @RHF iter   2:    -4.35446516160618   -1.76738e-02   4.06817e-04 DIIS
+   @RHF iter   3:    -4.35540396185446   -9.38800e-04   1.85616e-05 DIIS
+   @RHF iter   4:    -4.35540611651575   -2.15466e-06   1.91566e-06 DIIS
+   @RHF iter   5:    -4.35540614368240   -2.71667e-08   3.14442e-07 DIIS
+   @RHF iter   6:    -4.35540614466303   -9.80629e-10   6.87733e-08 DIIS
+   @RHF iter   7:    -4.35540614473234   -6.93055e-11   1.56450e-08 DIIS
+   @RHF iter   8:    -4.35540614473616   -3.82627e-12   2.21917e-09 DIIS
+   @RHF iter   9:    -4.35540614473624   -7.28306e-14   2.80051e-10 DIIS
+   @RHF iter  10:    -4.35540614473621    2.39808e-14   2.59038e-11 DIIS
+  Energy and wave function converged.
+
+
+  ==> Post-Iterations <==
+
+    Orbital Energies [Eh]
+    ---------------------
+
+    Doubly Occupied:                                                      
+
+       1A     -0.734326     2A     -0.650811     3A     -0.526215  
+       4A     -0.392018  
+
+    Virtual:                                                              
+
+       5A      0.047021     6A      0.050130     7A      0.062147  
+       8A      0.071721     9A      0.075414    10A      0.098106  
+      11A      0.102775    12A      0.142522    13A      0.184018  
+      14A      0.193854    15A      0.232966    16A      0.285495  
+      17A      0.307320    18A      0.355718    19A      0.389289  
+      20A      0.398639    21A      0.403629    22A      0.414972  
+      23A      0.420491    24A      0.451632    25A      0.452057  
+      26A      0.468393    27A      0.469652    28A      0.502321  
+      29A      0.524328    30A      0.531311    31A      0.547001  
+      32A      0.557437    33A      0.573485    34A      0.579557  
+      35A      0.642741    36A      0.656137    37A      0.757887  
+      38A      0.771592    39A      0.805800    40A      0.877642  
+      41A      0.951344    42A      1.033114    43A      1.145061  
+      44A      1.183594    45A      1.190365    46A      1.240483  
+      47A      1.327356    48A      1.384569    49A      1.598086  
+      50A      1.605860    51A      1.675871    52A      1.740821  
+      53A      1.752848    54A      1.822879    55A      1.883984  
+      56A      2.088763    57A      2.114277    58A      2.135167  
+      59A      2.154580    60A      2.156125    61A      2.239231  
+      62A      2.254673    63A      2.265028    64A      2.283206  
+      65A      2.318500    66A      2.327980    67A      2.432180  
+      68A      2.745828    69A      3.663423    70A      3.692216  
+      71A      3.725243    72A      3.729906  
+
+    Final Occupation by Irrep:
+              A 
+    DOCC [     4 ]
+
+  @RHF Final Energy:    -4.35540614473621
+
+   => Energetics <=
+
+    Nuclear Repulsion Energy =              8.5426663603531967
+    One-Electron Energy =                 -21.1894038797983271
+    Two-Electron Energy =                   8.2913313747089177
+    Total Energy =                         -4.3554061447362127
+
+Computation Completed
+
+
+Properties will be evaluated at   0.000000,   0.000000,   0.000000 [a0]
+
+Properties computed using the SCF density matrix
+
+  Nuclear Dipole Moment: [e a0]
+     X:    -0.0000      Y:     0.0000      Z:     0.0000
+
+  Electronic Dipole Moment: [e a0]
+     X:     0.0000      Y:    -0.0000      Z:     0.0303
+
+  Dipole Moment: [e a0]
+     X:     0.0000      Y:    -0.0000      Z:     0.0303     Total:     0.0303
+
+  Dipole Moment: [D]
+     X:     0.0000      Y:    -0.0000      Z:     0.0770     Total:     0.0770
+
+
+*** tstop() called on Ruhees-MacBook-Pro.local at Tue Oct 15 16:21:13 2019
+Module time:
+	user time   =       0.94 seconds =       0.02 minutes
+	system time =       0.03 seconds =       0.00 minutes
+	total time  =          1 seconds =       0.02 minutes
+Total time:
+	user time   =       0.94 seconds =       0.02 minutes
+	system time =       0.03 seconds =       0.00 minutes
+	total time  =          1 seconds =       0.02 minutes
+
+*** tstart() called on Ruhees-MacBook-Pro.local
+*** at Tue Oct 15 16:21:13 2019
+
+   => Loading Basis Set <=
+
+    Name: AUG-CC-PVDZ
+    Role: ORBITAL
+    Keyword: BASIS
+    atoms 1-8 entry H          line    40 file /Users/ruheedcunha/Desktop/playground/psi4/share/psi4/basis/aug-cc-pvdz.gbs 
+
+
+         ---------------------------------------------------------
+                                   SCF
+               by Justin Turney, Rob Parrish, Andy Simmonett
+                          and Daniel G. A. Smith
+                              RHF Reference
+                        1 Threads,   1907 MiB Core
+         ---------------------------------------------------------
+
+  ==> Geometry <==
+
+    Molecular point group: c1
+    Full point group: C2
+
+    Geometry (in Angstrom), charge = 0, multiplicity = 1:
+
+       Center              X                  Y                   Z               Mass       
+    ------------   -----------------  -----------------  -----------------  -----------------
+         H            2.250000000000     0.000000000000    -0.162379763210     1.007825032230
+         H            2.250000000000    -0.750000000000    -0.162379763210     1.007825032230
+         H            0.750000000000     0.000000000000    -0.162379763210     1.007825032230
+         H            0.750000000000    -0.375000000000     0.487139289629     1.007825032230
+         H           -0.750000000000     0.000000000000    -0.162379763210     1.007825032230
+         H           -0.750000000000     0.375000000000     0.487139289629     1.007825032230
+         H           -2.250000000000     0.000000000000    -0.162379763210     1.007825032230
+         H           -2.250000000000     0.750000000000    -0.162379763210     1.007825032230
+
+  Running in c1 symmetry.
+
+  Rotational constants: A =     12.59515  B =      0.70151  C =      0.69968 [cm^-1]
+  Rotational constants: A = 377593.17195  B =  21030.79889  C =  20975.89988 [MHz]
+  Nuclear repulsion =    8.542666360353197
+
+  Charge       = 0
+  Multiplicity = 1
+  Electrons    = 8
+  Nalpha       = 4
+  Nbeta        = 4
+
+  ==> Algorithm <==
+
+  SCF Algorithm Type is PK.
+  DIIS enabled.
+  MOM disabled.
+  Fractional occupation disabled.
+  Guess Type is SAD.
+  Energy threshold   = 1.00e-10
+  Density threshold  = 1.00e-10
+  Integral threshold = 0.00e+00
+
+  ==> Primary Basis <==
+
+  Basis Set: AUG-CC-PVDZ
+    Blend: AUG-CC-PVDZ
+    Number of shells: 40
+    Number of basis function: 72
+    Number of Cartesian functions: 72
+    Spherical Harmonics?: true
+    Max angular momentum: 1
+
+  ==> Pre-Iterations <==
+
+   -------------------------------------------------------
+    Irrep   Nso     Nmo     Nalpha   Nbeta   Ndocc  Nsocc
+   -------------------------------------------------------
+     A         72      72       0       0       0       0
+   -------------------------------------------------------
+    Total      72      72       4       4       4       0
+   -------------------------------------------------------
+
+  ==> Integral Setup <==
+
+  Using in-core PK algorithm.
+   Calculation information:
+      Number of atoms:                   8
+      Number of AO shells:              40
+      Number of primitives:             56
+      Number of atomic orbitals:        72
+      Number of basis functions:        72
+
+      Integral cutoff                 1.00e-12
+      Number of threads:                 1
+
+  Performing in-core PK
+  Using 6909012 doubles for integral storage.
+  We computed 335798 shell quartets total.
+  Whereas there are 336610 unique shell quartets.
+
+  ==> DiskJK: Disk-Based J/K Matrices <==
+
+    J tasked:                  Yes
+    K tasked:                  Yes
+    wK tasked:                  No
+    Memory [MiB]:             1430
+    Schwarz Cutoff:          1E-12
+
+    OpenMP threads:              1
+
+  Minimum eigenvalue in the overlap matrix is 1.3694863242E-04.
+  Using Symmetric Orthogonalization.
+
+  SCF Guess: Superposition of Atomic Densities via on-the-fly atomic UHF.
+
+  ==> Iterations <==
+
+                        Total Energy        Delta E     RMS |[F,P]|
+
+   @RHF iter SAD:    -3.99708061457247   -3.99708e+00   0.00000e+00 
+   @RHF iter   1:    -4.33679136450316   -3.39711e-01   1.86922e-03 DIIS
+   @RHF iter   2:    -4.35446516160625   -1.76738e-02   4.06817e-04 DIIS
+   @RHF iter   3:    -4.35540396185451   -9.38800e-04   1.85616e-05 DIIS
+   @RHF iter   4:    -4.35540611651582   -2.15466e-06   1.91566e-06 DIIS
+   @RHF iter   5:    -4.35540614368247   -2.71666e-08   3.14442e-07 DIIS
+   @RHF iter   6:    -4.35540614466315   -9.80679e-10   6.87733e-08 DIIS
+   @RHF iter   7:    -4.35540614473241   -6.92664e-11   1.56450e-08 DIIS
+   @RHF iter   8:    -4.35540614473624   -3.82894e-12   2.21917e-09 DIIS
+   @RHF iter   9:    -4.35540614473628   -4.08562e-14   2.80050e-10 DIIS
+   @RHF iter  10:    -4.35540614473630   -2.04281e-14   2.59036e-11 DIIS
+  Energy and wave function converged.
+
+
+  ==> Post-Iterations <==
+
+    Orbital Energies [Eh]
+    ---------------------
+
+    Doubly Occupied:                                                      
+
+       1A     -0.734326     2A     -0.650811     3A     -0.526215  
+       4A     -0.392018  
+
+    Virtual:                                                              
+
+       5A      0.047021     6A      0.050130     7A      0.062147  
+       8A      0.071721     9A      0.075414    10A      0.098106  
+      11A      0.102775    12A      0.142522    13A      0.184018  
+      14A      0.193854    15A      0.232966    16A      0.285495  
+      17A      0.307320    18A      0.355718    19A      0.389289  
+      20A      0.398639    21A      0.403629    22A      0.414972  
+      23A      0.420491    24A      0.451632    25A      0.452057  
+      26A      0.468393    27A      0.469652    28A      0.502321  
+      29A      0.524328    30A      0.531311    31A      0.547001  
+      32A      0.557437    33A      0.573485    34A      0.579557  
+      35A      0.642741    36A      0.656137    37A      0.757887  
+      38A      0.771592    39A      0.805800    40A      0.877642  
+      41A      0.951344    42A      1.033114    43A      1.145061  
+      44A      1.183594    45A      1.190365    46A      1.240483  
+      47A      1.327356    48A      1.384569    49A      1.598086  
+      50A      1.605860    51A      1.675871    52A      1.740821  
+      53A      1.752848    54A      1.822879    55A      1.883984  
+      56A      2.088763    57A      2.114277    58A      2.135167  
+      59A      2.154580    60A      2.156125    61A      2.239231  
+      62A      2.254673    63A      2.265028    64A      2.283206  
+      65A      2.318500    66A      2.327980    67A      2.432180  
+      68A      2.745828    69A      3.663423    70A      3.692216  
+      71A      3.725243    72A      3.729906  
+
+    Final Occupation by Irrep:
+              A 
+    DOCC [     4 ]
+
+  @RHF Final Energy:    -4.35540614473630
+
+   => Energetics <=
+
+    Nuclear Repulsion Energy =              8.5426663603531967
+    One-Electron Energy =                 -21.1894038797986362
+    Two-Electron Energy =                   8.2913313747091344
+    Total Energy =                         -4.3554061447363051
+
+Computation Completed
+
+
+Properties will be evaluated at   0.000000,   0.000000,   0.000000 [a0]
+
+Properties computed using the SCF density matrix
+
+  Nuclear Dipole Moment: [e a0]
+     X:    -0.0000      Y:    -0.0000      Z:     0.0000
+
+  Electronic Dipole Moment: [e a0]
+     X:     0.0000      Y:    -0.0000      Z:     0.0303
+
+  Dipole Moment: [e a0]
+     X:     0.0000      Y:    -0.0000      Z:     0.0303     Total:     0.0303
+
+  Dipole Moment: [D]
+     X:     0.0000      Y:    -0.0000      Z:     0.0770     Total:     0.0770
+
+
+*** tstop() called on Ruhees-MacBook-Pro.local at Tue Oct 15 16:21:14 2019
+Module time:
+	user time   =       0.77 seconds =       0.01 minutes
+	system time =       0.02 seconds =       0.00 minutes
+	total time  =          1 seconds =       0.02 minutes
+Total time:
+	user time   =       1.72 seconds =       0.03 minutes
+	system time =       0.05 seconds =       0.00 minutes
+	total time  =          2 seconds =       0.03 minutes
+ MINTS: Wrapper to libmints.
+   by Justin Turney
+
+   Calculation information:
+      Number of threads:                 1
+      Number of atoms:                   8
+      Number of AO shells:              40
+      Number of SO shells:              40
+      Number of primitives:             56
+      Number of atomic orbitals:        72
+      Number of basis functions:        72
+
+      Number of irreps:                  1
+      Integral cutoff                 0.00e+00
+      Number of functions per irrep: [  72 ]
+
+ OEINTS: Overlap, kinetic, potential, dipole, and quadrupole integrals
+         stored in file 35.
+
+      Computing two-electron integrals...done
+      Computed 3239014 non-zero two-electron integrals.
+        Stored in file 33.
+
+
+*** tstart() called on Ruhees-MacBook-Pro.local
+*** at Tue Oct 15 16:21:14 2019
+
+
+ ============================================================================== 
+ ============================================================================== 
+ ============================================================================== 
+
+                       MP2   
+              Program Written by Ugur Bozkaya,
+              Latest Revision June 25, 2014.
+
+ ============================================================================== 
+ ============================================================================== 
+ ============================================================================== 
+
+	RMS orbital gradient is changed to :     1.00e-07
+	MAX orbital gradient is changed to :     1.00e-04
+	MO spaces per irreps... 
+
+	IRREP   FC    OCC   VIR  FV 
+	==============================
+	   A     0     4    68    0
+	==============================
+
+	Memory is   2000 MB 
+	Cost of iabc is      8 MB 
+	Cost of abcd is    160 MB 
+	Switching to the incore algorithm for iabc..
+	Switching to the incore algorithm for abcd..
+
+	Computing MP2 energy using SCF MOs (Canonical MP2)... 
+	============================================================================== 
+	Nuclear Repulsion Energy (a.u.)    :     8.54266636035320
+	SCF Energy (a.u.)                  :    -4.35540614473630
+	REF Energy (a.u.)                  :    -4.35540614473630
+	Alpha-Alpha Contribution (a.u.)    :    -0.00304302961902
+	Alpha-Beta Contribution (a.u.)     :    -0.11976067707748
+	Beta-Beta Contribution (a.u.)      :    -0.00304302961902
+	Scaled_SS Correlation Energy (a.u.):    -0.00202868641268
+	Scaled_OS Correlation Energy (a.u.):    -0.14371281249298
+	SCS-MP2 Total Energy (a.u.)        :    -4.50114764364196
+	SOS-MP2 Total Energy (a.u.)        :    -4.35540614473630
+	SCSN-MP2 Total Energy (a.u.)       :    -4.36611760899525
+	SCS-MP2-VDW Total Energy (a.u.)    :    -4.51174284101450
+	SOS-PI-MP2 Total Energy (a.u.)     :    -4.52307109264478
+	MP2 Correlation Energy (a.u.)      :    -0.12584673631552
+	MP2 Total Energy (a.u.)            :    -4.48125288105182
+	============================================================================== 
+
+*** tstop() called on Ruhees-MacBook-Pro.local at Tue Oct 15 16:21:15 2019
+Module time:
+	user time   =       0.49 seconds =       0.01 minutes
+	system time =       0.20 seconds =       0.00 minutes
+	total time  =          1 seconds =       0.02 minutes
+Total time:
+	user time   =       2.64 seconds =       0.04 minutes
+	system time =       0.33 seconds =       0.01 minutes
+	total time  =          3 seconds =       0.05 minutes
