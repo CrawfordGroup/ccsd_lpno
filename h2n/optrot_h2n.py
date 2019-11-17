@@ -9,8 +9,15 @@ References used:
 import numpy as np
 import psi4
 import ccsd_lpno
+import argparse
+import json
 
-cutoffs = [1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4]
+parser = argparse.ArgumentParser()
+parser.add_argument("--j", default='output.json', type=str, help="Output json filename") 
+args = parser.parse_args()
+
+cutoffs = [1e-10, 5e-9, 5e-8, 5e-7, 5e-6, 5e-5]
+#cutoffs =[0]
 
 optrot_lg_list = {}
 optrot_mvg_list = {}
@@ -24,7 +31,7 @@ for cut in cutoffs:
     np.set_printoptions(precision=12, threshold=np.inf, linewidth=200, suppress=True)
 
     # Set Psi4 options
-    geom = ccsd_lpno.mollib.mollib["h2_7"]
+    geom = ccsd_lpno.mollib.mollib["{}".format(args.j)]
     mol = psi4.geometry(geom)
 
     psi4.set_options({'basis': 'aug-cc-pvdz', 'scf_type': 'pk',
@@ -60,6 +67,12 @@ for cut in cutoffs:
     
     optrot_lg_list['{}'.format(cut)] = optrot_lg
     optrot_mvg_list['{}'.format(cut)] = optrot_mvg
+
+optrot_data = {}
+optrot_data['LG'] = optrot_lg_list
+optrot_data['MVG'] = optrot_mvg_list
+with open("{}".format(args.j), "w") as write_file:
+    json.dump(optrot_data, write_file, indent=4)
 
 print("List of optical rotations (LG, {} nm): {}".format(omega_nm, optrot_lg_list))
 print("List of optical rotations (MVG, {} nm): {}".format(omega_nm, optrot_mvg_list))

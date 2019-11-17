@@ -45,26 +45,31 @@ class HelperLocal(object):
             #Q_full = np.load('Q_full.npy')
             #print("The two Qs are the same: {}".format(np.allclose(Q_full, Q)))
             # Truncate each set of pnos by occ no
-            s_pairs = np.zeros(self.no_occ * self.no_occ)
+            self.s_pairs = np.zeros(self.no_occ * self.no_occ)
             Q_list = []
             avg = 0.0
+            sq_avg = 0.0
             for ij in range(self.no_occ * self.no_occ):
                 survivors = occ_nos[ij] > pno_cut
-                if ij == 0:
-                    print("Survivors[0]:\n{}".format(survivors))
+                #if ij == 0:
+                #    print("Survivors[0]:\n{}".format(survivors))
                 for a in range(self.no_vir):
                     if survivors[a] == True:
-                        s_pairs[ij] += 1
-                avg += s_pairs[ij]
-                rm_pairs = self.no_vir - int(s_pairs[ij])
+                        self.s_pairs[ij] += 1
+                avg += self.s_pairs[ij]
+                sq_avg += self.s_pairs[ij] * self.s_pairs[ij]
+                rm_pairs = self.no_vir - int(self.s_pairs[ij])
                 Q_list.append(Q[ij, :, rm_pairs:])
                 #if ij == 5:
                 #    print("Here's occ nums and Q: {}\n{}".format(occ_nos[ij], Q[ij]))
                 #    print("Here's occ nums and Q: {}\n{}".format(occ_nos[ij], Q[ij, :, rm_pairs:]))
             
+            print("Tcut_PNO : {}".format(pno_cut))
+            print("Total no. of PNOs: {}".format(avg))
+            print("T2 ratio: {}".format(sq_avg/(self.no_occ * self.no_occ * self.no_vir * self.no_vir)))
             avg = avg/(self.no_occ * self.no_occ)
             print('Occupation numbers [0]:\n {}'.format(occ_nos[0]))
-            print("Numbers of surviving PNOs:\n{}".format(s_pairs))
+            print("Numbers of surviving PNOs:\n{}".format(self.s_pairs))
             print('Average number of PNOs:\n{}'.format(avg))
 
             # Get semicanonical transforms
@@ -188,3 +193,15 @@ class HelperLocal(object):
             
         return new_tia, new_tijab
         #return new_tijab
+
+    def PNO_correction(self, t_ijab, MO):
+        total = 0
+        new_MO = np.reshape(MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], (self.no_occ*self.no_occ, self.no_vir, self.no_vir))
+        new_t = np.reshape(t_ijab, (self.no_occ*self.no_occ, self.no_vir, self.no_vir))
+        for ij in range(self.no_occ * self.no_occ):
+            compute_pairs = self.no_occ + int(self.s_pairs[ij])
+            print("Shapes: {} \n{}".format(new_MO[ij, compute_pairs:, compute_pairs:].shape, new_t[ij, compute_pairs:, compute_pairs:].shape))
+            total += 2.0 * contract('ab,ab->', new_MO[ij, compute_pairs:, compute_pairs:], new_t[ij, compute_pairs:, compute_pairs:])
+            total -= contract('ba,ab->', new_MO[ij, compute_pairs:, compute_pairs:], new_t[ij, compute_pairs:, compute_pairs:])
+        return total
+

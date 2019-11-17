@@ -79,7 +79,182 @@ def do_linresp(wfn, omega_nm, mol, method='polar', gauge='length', localize=Fals
 
         return isotropic_polar
     elif method=='optrot':
-        if gauge=='length':
+        if gauge=='both':
+
+            ### Length gauge OR calculation
+            ### Form of linear response function: <<mu;L>>
+
+            # Get the perturbation mu
+            dipole_array = hcc.mints.ao_dipole()
+
+            # Get the angular momentum L
+            angular_momentum = hcc.mints.ao_angular_momentum()
+
+            # Create HelperPert objects for both
+            Mu = {}
+            pert1 = {}
+            L = {}
+            pert2 = {}
+
+            # Rosenfeld tensor
+            beta = {}
+            betap = {}
+            beta_new = {}
+
+            i=0
+            for string in ['X', 'Y', 'Z']:
+                Mu[string] = np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(dipole_array[i]))
+                pert1[string] = HelperPert(hcc, hbar, lda, Mu[string], omega, local=local)
+                L[string] = -0.5 * np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(angular_momentum[i]))
+                pert2[string] = HelperPert(hcc, hbar, lda, L[string], omega, local=local)
+
+                i+=1
+                for hand in ['right', 'left']:
+                    pseudoresponse1 = pert1[string].iterate(hand, r_conv=1e-10, local=local)
+                for hand in ['right', 'left']:
+                    pseudoresponse2 = pert2[string].iterate(hand, r_conv=1e-10, local=local)
+
+            print('Rosenfeld tensor:')
+            for string1 in ['X', 'Y', 'Z']:
+                for string2 in ['X', 'Y', 'Z']:
+                    beta[string1+string2] = HelperResp(lda, pert1[string1], pert2[string2]).linear_resp()
+                    betap[string1+string2] = HelperResp(lda, pert2[string2], pert1[string1]).linear_resp()
+
+                    beta_new[string1+string2] = 0.5 * (beta[string1+string2] - betap[string1+string2])
+                    print(' {} {} : {}'.format(string1, string2, beta_new[string1+string2]))
+
+            trace = 0.0
+            for string in ['XX','YY','ZZ']:
+                trace += beta_new[string]
+            trace /= 3.0
+
+            # Calculation of the specific rotation
+            Mass = 0
+            for atom in range(mol.natom()):
+                Mass += mol.mass(atom)
+            h_bar = pc.h / (2.0 * np.pi)
+            prefactor = -72e6 * h_bar**2 * pc.na / (pc.c**2 * pc.me**2 * Mass)
+            # Have to multiply with omega for length gauge
+            optrot_lg = prefactor * trace * omega
+
+            ### Velocity gauge OR calculation
+            ### Form of linear response function: <<p;L>>
+
+            # Get the perturbation P
+            p_array = hcc.mints.ao_nabla()
+
+            # Get the angular momentum L
+            angular_momentum = hcc.mints.ao_angular_momentum()
+
+            # Create HelperPert objects for both
+            P = {}
+            pert1 = {}
+            L = {}
+            pert2 = {}
+
+            # Rosenfeld tensor
+            beta = {}
+            betap = {}
+            beta_new = {}
+
+            i=0
+            for string in ['X', 'Y', 'Z']:
+                P[string] = np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(p_array[i]))
+                pert1[string] = HelperPert(hcc, hbar, lda, P[string], omega, local=local)
+                L[string] = -0.5 * np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(angular_momentum[i]))
+                pert2[string] = HelperPert(hcc, hbar, lda, L[string], omega, local=local)
+
+                i+=1
+                for hand in ['right', 'left']:
+                    pseudoresponse1 = pert1[string].iterate(hand, r_conv=1e-10, local=local)
+                for hand in ['right', 'left']:
+                    pseudoresponse2 = pert2[string].iterate(hand, r_conv=1e-10, local=local)
+
+            print('Rosenfeld tensor:')
+            for string1 in ['X', 'Y', 'Z']:
+                for string2 in ['X', 'Y', 'Z']:
+                    beta[string1+string2] = HelperResp(lda, pert1[string1], pert2[string2]).linear_resp()
+                    betap[string1+string2] = HelperResp(lda, pert2[string2], pert1[string1]).linear_resp()
+
+                    beta_new[string1+string2] = 0.5 * (beta[string1+string2] + betap[string1+string2])
+                    print(' {} {} : {}'.format(string1, string2, beta_new[string1+string2]))
+
+            trace = 0.0
+            for string in ['XX','YY','ZZ']:
+                trace += beta_new[string]
+            trace /= 3.0
+
+            # Calculation of the specific rotation
+            Mass = 0
+            for atom in range(mol.natom()):
+                Mass += mol.mass(atom)
+            h_bar = pc.h / (2.0 * np.pi)
+            prefactor = -72e6 * h_bar**2 * pc.na / (pc.c**2 * pc.me**2 * Mass)
+            optrot_vg = prefactor * trace
+            # So velocity gauge is / omega
+
+            ### Modified velocity gauge OR calculation
+            ### Form of linear response function: <<p;L>> - <<p;L>>_0
+            ### Using the velocity gauge OR value and subtracting the static value
+            omega = 0.0
+
+            # Get the perturbation P
+            p_array = hcc.mints.ao_nabla()
+
+            # Get the angular momentum L
+            angular_momentum = hcc.mints.ao_angular_momentum()
+
+            # Create HelperPert objects for both
+            P = {}
+            pert1 = {}
+            L = {}
+            pert2 = {}
+
+            # Rosenfeld tensor
+            beta = {}
+            betap = {}
+            beta_new = {}
+
+            i=0
+            for string in ['X', 'Y', 'Z']:
+                P[string] = np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(p_array[i]))
+                pert1[string] = HelperPert(hcc, hbar, lda, P[string], omega, local=local)
+                L[string] = -0.5 * np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(angular_momentum[i]))
+                pert2[string] = HelperPert(hcc, hbar, lda, L[string], omega, local=local)
+
+                i+=1
+                for hand in ['right', 'left']:
+                    pseudoresponse1 = pert1[string].iterate(hand, r_conv=1e-10, local=local)
+                for hand in ['right', 'left']:
+                    pseudoresponse2 = pert2[string].iterate(hand, r_conv=1e-10, local=local)
+
+            print('Rosenfeld tensor:')
+            for string1 in ['X', 'Y', 'Z']:
+                for string2 in ['X', 'Y', 'Z']:
+                    beta[string1+string2] = HelperResp(lda, pert1[string1], pert2[string2]).linear_resp()
+                    betap[string1+string2] = HelperResp(lda, pert2[string2], pert1[string1]).linear_resp()
+
+                    beta_new[string1+string2] = 0.5 * (beta[string1+string2] + betap[string1+string2])
+                    print(' {} {} : {}'.format(string1, string2, beta_new[string1+string2]))
+
+            trace = 0.0
+            for string in ['XX','YY','ZZ']:
+                trace += beta_new[string]
+            trace /= 3.0
+
+            # Calculation of the specific rotation
+            Mass = 0
+            for atom in range(mol.natom()):
+                Mass += mol.mass(atom)
+            h_bar = pc.h / (2.0 * np.pi)
+            prefactor = -72e6 * h_bar**2 * pc.na / (pc.c**2 * pc.me**2 * Mass)
+            optrot_diff = prefactor * trace
+
+            optrot_mvg = optrot_vg - optrot_diff
+            
+            return optrot_lg, optrot_mvg
+            
+        elif gauge=='length':
 
             ### Length gauge OR calculation
             ### Form of linear response function: <<mu;L>>

@@ -128,15 +128,20 @@ class HelperCCEnergy(object):
         mp2_e -= contract('ijba,ijab->', self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.t_ijab)
         print("MP2 energy(without truncation: {}".format(mp2_e))
 
+        self.e_ij = np.zeros((self.no_occ, self.no_occ))
+        for i in range(self.no_occ):
+            for j in range(self.no_occ):
+                self.e_ij[i,j] += 2.0 * contract('ab,ab->', self.MO[i, j, self.no_occ:, self.no_occ:], self.t_ijab[i, j])
+                self.e_ij[i,j] -= contract('ba,ab->', self.MO[i, j, self.no_occ:, self.no_occ:], self.t_ijab[i, j])
+
         if local:
             # Initialize PNOs
             print('Local switch on. Initializing PNOs.')
             # Identify weak pairs using MP2 pair corr energy
-            e_ij = contract('ijab,ijab->ij', self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.t_ijab)
-            self.mp2_e  = self.corr_energy(self.t_ia, self.t_ijab)
+            #e_ij = contract('ijab,ijab->ij', self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.t_ijab)
             #print('MP2 correlation energy: {}\n'.format(self.mp2_e))
             #print('Pair corr energy matrix:\n{}'.format(e_ij))
-            str_pair_list = abs(e_ij) > e_cut
+            str_pair_list = abs(self.e_ij) > e_cut
             #print('Strong pair list:\n{}'.format(str_pair_list.reshape(1,-1)))
 
             if pert:
@@ -156,13 +161,18 @@ class HelperCCEnergy(object):
 
                 # Prepare the perturbation
                 A_list = {}
-                # Here, perturbation is dipole moment
+                ## Here, perturbation is dipole moment
                 dipole_array = self.mints.ao_dipole()
+                # Here, perturbation is angular momentum
+                #angular_momentum = self.mints.ao_angular_momentum()
                 for i in range(3):
+                    #A_list[i] = np.einsum('uj,vi,uv', self.C_arr, self.C_arr, np.asarray(angular_momentum[i]))
                     A_list[i] = np.einsum('uj,vi,uv', self.C_arr, self.C_arr, np.asarray(dipole_array[i]))
                 local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, pert=pert, A_list=A_list, Hbar=Hbar)            
+                #self.pno_correct = local.PNO_correction(self.t_ijab, self.MO)
             else:
                 local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, str_pair_list=str_pair_list)            
+            self.pno_correct = local.PNO_correction(self.t_ijab, self.MO)
             Ria = np.zeros((self.no_occ, self.no_vir))
             self.tia, self.t_ijab = local.increment(Ria, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.F_occ)
             #self.t_ijab = local.increment(Ria, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.F_occ)
@@ -380,7 +390,6 @@ class HelperCCEnergy(object):
         return E_corr
 
     def do_CC(self, local=None, e_conv=1e-8, r_conv=1e-7, maxiter=40, max_diis=8, start_diis=0):
-        self.old_e = self.corr_energy(self.t_ia, self.t_ijab)
         '''
         Do CCSD iterations with DIIS and local options
 
@@ -400,6 +409,7 @@ class HelperCCEnergy(object):
         :return: Converged pseudoenergy
         :rtype: double
         '''
+        self.old_e = self.corr_energy(self.t_ia, self.t_ijab)
         print('Iteration\t\t Correlation energy\tDifference\tRMS\nMP2\t\t\t {}'.format(self.old_e))
     # Set up DIIS
         diis = HelperDIIS(self.t_ia, self.t_ijab, max_diis)
