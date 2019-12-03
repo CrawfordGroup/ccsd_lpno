@@ -6,16 +6,16 @@
 Welcome to CCSD-LPNO Response code's documentation!
 ===================================================
 
+This is documentation for the "perturbation-aware" density CCSD-LPNO code, 
+written by Ruhee D'Cunha in the Crawford group at Virginia Tech.
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
+   README <readme_link>
+   CCSD_LPNO module <ccsd_lpno>
+
 .. automodule:: ccsd_lpno
    :members:
 
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

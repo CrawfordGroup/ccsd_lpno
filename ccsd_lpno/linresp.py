@@ -17,7 +17,7 @@ from .local import *
 from psi4 import constants as pc 
 
 # Bring in wfn from psi4
-def do_linresp(wfn, omega_nm, mol, method='polar', gauge='length', localize=False, pert=False, pno_cut=0): 
+def do_linresp(wfn, omega_nm, mol, method='polar', gauge='length', localize=False, pert=None, pno_cut=0): 
     
     # Create Helper_local object
     if localize:

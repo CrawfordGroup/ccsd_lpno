@@ -32,6 +32,7 @@
             
   <div class="section" id="ccsd-lpno-package">
 <h1>ccsd_lpno package<a class="headerlink" href="#ccsd-lpno-package" title="Permalink to this headline">¶</a></h1>
+<p>This package contains all submodules necessary to run calculations.</p>
 <div class="section" id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
 </div>
@@ -118,17 +119,47 @@ For building spin-adapted CC Hbar matrix elements</p>
 </div>
 <div class="section" id="module-ccsd_lpno.cc_lambda">
 <span id="ccsd-lpno-cc-lambda-module"></span><h2>ccsd_lpno.cc_lambda module<a class="headerlink" href="#module-ccsd_lpno.cc_lambda" title="Permalink to this headline">¶</a></h2>
-<p>HelperLambda class definition and function definitions
-For iteratively solving for lambda lagrangian multipliers
-After completing a CCSD calculation and building Hbar matrix elements</p>
+<p>HelperLambda class definition and function definitions</p>
+<p>For iteratively solving for lambda lagrangian multipliers
+after completing a CCSD calculation and building Hbar matrix elements</p>
 <dl class="class">
 <dt id="ccsd_lpno.cc_lambda.HelperLambda">
 <em class="property">class </em><code class="sig-prename descclassname">ccsd_lpno.cc_lambda.</code><code class="sig-name descname">HelperLambda</code><span class="sig-paren">(</span><em class="sig-param">hcc</em>, <em class="sig-param">hbar</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_lambda.HelperLambda" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Class for setting up and running a left hand CCSD amplitude calculation.</p>
+<p>Spin-adapted equations using an RHF wavefunction.
+Need to instantiate the object and then call the iterate() function</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>hcc</strong> (<em>class 'ccsd_lpno.HelperCCEnergy'</em>) – HelperCCEnergy object returned from CCSD calculation</p></li>
+<li><p><strong>hbar</strong> (<em>class 'ccsd_lpno.HelperHbar'</em>) – HelperHbar object instantiated using cc_hbar</p></li>
+</ul>
+</dd>
+</dl>
 <dl class="method">
 <dt id="ccsd_lpno.cc_lambda.HelperLambda.iterate">
 <code class="sig-name descname">iterate</code><span class="sig-paren">(</span><em class="sig-param">local=None</em>, <em class="sig-param">e_conv=1e-08</em>, <em class="sig-param">r_conv=1e-07</em>, <em class="sig-param">maxiter=40</em>, <em class="sig-param">max_diis=8</em>, <em class="sig-param">start_diis=0</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_lambda.HelperLambda.iterate" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Do Lambda iterations with DIIS and local options</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>local</strong> (<em>class 'ccsd_lpno.HelperLocal'</em>) – Object containing the increment function for local correlation calculations</p></li>
+<li><p><strong>e_conv</strong> (<em>double</em>) – Convergence threshold for energy</p></li>
+<li><p><strong>r_conv</strong> (<em>double</em>) – Convergence threshold for T-amplitude RMSDs</p></li>
+<li><p><strong>maxiter</strong> (<em>integer</em>) – Maximum no. of iterations</p></li>
+<li><p><strong>max_diis</strong> (<em>integer</em>) – Maximum no. of error vectors stored for DIIS</p></li>
+<li><p><strong>start_diis</strong> (<em>integer</em>) – Which iteration to start storing error vectors for DIIS</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Converged CCSD energy</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>double</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="method">
 <dt id="ccsd_lpno.cc_lambda.HelperLambda.make_Goo">
@@ -143,12 +174,40 @@ After completing a CCSD calculation and building Hbar matrix elements</p>
 <dl class="method">
 <dt id="ccsd_lpno.cc_lambda.HelperLambda.pseudo_energy">
 <code class="sig-name descname">pseudo_energy</code><span class="sig-paren">(</span><em class="sig-param">l_ijab</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_lambda.HelperLambda.pseudo_energy" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Compute the CCSD pseudoenergy</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>l_ijab</strong> (<em>numpy array</em>) – Current iteration T2</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>pseudoenergy</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>double</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="method">
 <dt id="ccsd_lpno.cc_lambda.HelperLambda.update_ls">
 <code class="sig-name descname">update_ls</code><span class="sig-paren">(</span><em class="sig-param">l_ia</em>, <em class="sig-param">l_ijab</em>, <em class="sig-param">local=None</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_lambda.HelperLambda.update_ls" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Update L1 and L2 amplitudes</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>l_ia</strong> (<em>numpy array</em>) – Previous iteration’s L1 amplitudes</p></li>
+<li><p><strong>l_ijab</strong> (<em>numpy array</em>) – Previous iteration’s L2 amplitudes</p></li>
+<li><p><strong>local</strong> (<em>class 'ccsd_lpno.HelperLocal'</em>) – Object containing the increment function for local correlation calculations</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Updated L1 and L2 amplitudes</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>numpy arrays</p>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -163,7 +222,7 @@ perturbations, after completing a CCSD calculation and
 building Hbar matrix elements, lambdas</p>
 <dl class="class">
 <dt id="ccsd_lpno.cc_pert.HelperPert">
-<em class="property">class </em><code class="sig-prename descclassname">ccsd_lpno.cc_pert.</code><code class="sig-name descname">HelperPert</code><span class="sig-paren">(</span><em class="sig-param">ccsd</em>, <em class="sig-param">hbar</em>, <em class="sig-param">lda</em>, <em class="sig-param">A</em>, <em class="sig-param">omega</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_pert.HelperPert" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">ccsd_lpno.cc_pert.</code><code class="sig-name descname">HelperPert</code><span class="sig-paren">(</span><em class="sig-param">ccsd</em>, <em class="sig-param">hbar</em>, <em class="sig-param">lda</em>, <em class="sig-param">A</em>, <em class="sig-param">omega</em>, <em class="sig-param">local=None</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.cc_pert.HelperPert" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <dl class="method">
 <dt id="ccsd_lpno.cc_pert.HelperPert.inhomogeneous_ys">
@@ -401,18 +460,18 @@ Need to instantiate the object and then call the do_cc() function</p>
 </div>
 <div class="section" id="module-ccsd_lpno.linresp">
 <span id="ccsd-lpno-linresp-module"></span><h2>ccsd_lpno.linresp module<a class="headerlink" href="#module-ccsd_lpno.linresp" title="Permalink to this headline">¶</a></h2>
-<p>Computing the CCSD-LR dipole polarizability  using an RHF reference
-References used:</p>
-<blockquote>
-<div><ul class="simple">
+<p>Computing the CCSD-LR dipole polarizability  using an RHF reference</p>
+<dl class="simple">
+<dt>References used:</dt><dd><ul class="simple">
 <li><p><a class="reference external" href="http://github.com/CrawfordGroup/ProgrammingProjects">http://github.com/CrawfordGroup/ProgrammingProjects</a></p></li>
 <li><p>Stanton:1991:4334</p></li>
 <li><p><a class="reference external" href="https://github.com/psi4/psi4numpy">https://github.com/psi4/psi4numpy</a></p></li>
 </ul>
-</div></blockquote>
+</dd>
+</dl>
 <dl class="function">
 <dt id="ccsd_lpno.linresp.do_linresp">
-<code class="sig-prename descclassname">ccsd_lpno.linresp.</code><code class="sig-name descname">do_linresp</code><span class="sig-paren">(</span><em class="sig-param">wfn</em>, <em class="sig-param">omega_nm</em>, <em class="sig-param">mol</em>, <em class="sig-param">method='polar'</em>, <em class="sig-param">gauge='length'</em>, <em class="sig-param">local=None</em>, <em class="sig-param">pno_cut=0</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.linresp.do_linresp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">ccsd_lpno.linresp.</code><code class="sig-name descname">do_linresp</code><span class="sig-paren">(</span><em class="sig-param">wfn</em>, <em class="sig-param">omega_nm</em>, <em class="sig-param">mol</em>, <em class="sig-param">method='polar'</em>, <em class="sig-param">gauge='length'</em>, <em class="sig-param">localize=False</em>, <em class="sig-param">pert=False</em>, <em class="sig-param">pno_cut=0</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.linresp.do_linresp" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>
@@ -434,27 +493,8 @@ References used:</p>
 
 <dl class="method">
 <dt id="ccsd_lpno.local.HelperLocal.increment">
-<code class="sig-name descname">increment</code><span class="sig-paren">(</span><em class="sig-param">Rijab</em>, <em class="sig-param">F_occ</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.local.HelperLocal.increment" title="Permalink to this definition">¶</a></dt>
-<dd><p>for i in range(no_occ):
-tmp_Q = Q_list[i*no_occ+i]
-tmp_L = L_list[i*no_occ+i]
-# Transform Rs using Q
-R1Q = contract(‘b,ba-&gt;a’, Ria[i], tmp_Q)
-# Transform RQs using L
-R1QL = contract(‘b,ba-&gt;a’, R1Q, tmp_L)
-tmp3 = self.eps_pno_list[i*no_occ+i]
-# Use vir orb. energies from semicanonical
-d1_QL = np.zeros(tmp3.shape[0])
-for a in range(tmp3.shape[0]):</p>
-<blockquote>
-<div><p>d1_QL[a] = self.F_occ[i, i] - tmp3[a]</p>
-</div></blockquote>
-<p>T1QL = R1QL / d1_QL
-# Back transform to TQs
-T1Q = contract(‘ab,b-&gt;a’, tmp_L, T1QL)
-# Back transform to Ts
-new_tia[i] += contract(‘ab,b-&gt;a’, tmp_Q, T1Q)</p>
-</dd></dl>
+<code class="sig-name descname">increment</code><span class="sig-paren">(</span><em class="sig-param">Ria</em>, <em class="sig-param">Rijab</em>, <em class="sig-param">F_occ</em><span class="sig-paren">)</span><a class="headerlink" href="#ccsd_lpno.local.HelperLocal.increment" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="method">
 <dt id="ccsd_lpno.local.HelperLocal.init_PNOs">
@@ -484,18 +524,9 @@ Works with current Psi4</p>
 </dd></dl>
 
 </div>
-<div class="section" id="ccsd-lpno-new-test-module">
-<h2>ccsd_lpno.new_test module<a class="headerlink" href="#ccsd-lpno-new-test-module" title="Permalink to this headline">¶</a></h2>
-</div>
-<div class="section" id="module-ccsd_lpno.test_psi4">
-<span id="ccsd-lpno-test-psi4-module"></span><h2>ccsd_lpno.test_psi4 module<a class="headerlink" href="#module-ccsd_lpno.test_psi4" title="Permalink to this headline">¶</a></h2>
-</div>
-<div class="section" id="ccsd-lpno-test-ucc-module">
-<h2>ccsd_lpno.test_ucc module<a class="headerlink" href="#ccsd-lpno-test-ucc-module" title="Permalink to this headline">¶</a></h2>
-</div>
 <div class="section" id="module-ccsd_lpno">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-ccsd_lpno" title="Permalink to this headline">¶</a></h2>
-<p>Primary init</p>
+<p>Perturbation-aware CCSD-LPNO Response</p>
 </div>
 </div>
 

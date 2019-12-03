@@ -161,15 +161,17 @@ class HelperCCEnergy(object):
 
                 # Prepare the perturbation
                 A_list = {}
-                ## Here, perturbation is dipole moment
-                dipole_array = self.mints.ao_dipole()
-                # Here, perturbation is angular momentum
-                #angular_momentum = self.mints.ao_angular_momentum()
-                for i in range(3):
-                    #A_list[i] = np.einsum('uj,vi,uv', self.C_arr, self.C_arr, np.asarray(angular_momentum[i]))
-                    A_list[i] = np.einsum('uj,vi,uv', self.C_arr, self.C_arr, np.asarray(dipole_array[i]))
+                if pert == 'mu' or pert == 'mu+unpert':
+                    ## Here, perturbation is dipole moment
+                    dipole_array = self.mints.ao_dipole()
+                    for i in range(3):
+                        A_list[i] = np.einsum('uj,vi,uv', self.C_arr, self.C_arr, np.asarray(dipole_array[i]))
+                if pert == 'l' or pert == 'l+unpert':
+                    # Here, perturbation is angular momentum
+                    angular_momentum = self.mints.ao_angular_momentum()
+                    for i in range(3):
+                        A_list[i] = np.einsum('uj,vi,uv', self.C_arr, self.C_arr, np.asarray(angular_momentum[i]))
                 local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, pert=pert, A_list=A_list, Hbar=Hbar)            
-                #self.pno_correct = local.PNO_correction(self.t_ijab, self.MO)
             else:
                 local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, str_pair_list=str_pair_list)            
             self.pno_correct = local.PNO_correction(self.t_ijab, self.MO)

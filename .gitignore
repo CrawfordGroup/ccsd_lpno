@@ -6,6 +6,14 @@ ccsd_lpno/__pycache__/*
 
 *.pyc
 
+# data files
+h2n/*.json
+h2n/*.png
+h2n/*.dat
+
+# docs that aren't ready
+docs/build/*
+
 timer.dat
 
 tests/timer.dat

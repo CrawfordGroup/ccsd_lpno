@@ -1,6 +1,8 @@
 ccsd\_lpno package
 ==================
 
+This package contains all submodules necessary to run calculations.
+
 Submodules
 ----------
 
@@ -75,31 +77,6 @@ ccsd\_lpno.ndot module
    :members:
    :undoc-members:
    :show-inheritance:
-
-ccsd\_lpno.new\_test module
----------------------------
-
-.. automodule:: ccsd_lpno.new_test
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-ccsd\_lpno.test\_psi4 module
-----------------------------
-
-.. automodule:: ccsd_lpno.test_psi4
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-ccsd\_lpno.test\_ucc module
----------------------------
-
-.. automodule:: ccsd_lpno.test_ucc
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 
 Module contents
 ---------------
