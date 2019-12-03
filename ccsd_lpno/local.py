@@ -201,8 +201,8 @@ class HelperLocal(object):
         for ij in range(self.no_occ * self.no_occ):
             rm_pairs = self.no_vir - int(self.s_pairs[ij])
             print("rm_pairs: {}".format(rm_pairs))
-            #if rm_pairs == 0:
-            #    continue
+            if rm_pairs == 0:
+                continue
             Q_compute = self.Q[ij, :, :rm_pairs]
             trans_MO = contract('Aa,ab,bB->AB', Q_compute.T, new_MO[ij], Q_compute)
             trans_t = contract('Aa,ab,bB->AB', Q_compute.T, new_t[ij], Q_compute)
