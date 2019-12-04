@@ -31,65 +31,66 @@ class HelperLocal(object):
         #print("Density matrix [0, 0]: \n{}".format(self.D[0]))
         return D
 
-    def build_PNO_lists(self, pno_cut, D, F_vir, str_pair_list=None):
-            # Diagonalize pair densities to get PNOs (Q) and occ_nos
-            occ_nos = np.zeros((self.no_occ * self.no_occ, self.no_vir))
-            self.Q = np.zeros((self.no_occ * self.no_occ, self.no_vir, self.no_vir))
-            #print("Average density: {}".format(D[0]))
-            #print("numpy version: {}". format(np.__version__))
-            for ij in range(self.no_occ * self.no_occ):
-                occ_nos[ij], self.Q[ij] = np.linalg.eigh(D[ij])
-                #if ij == 0:
-                #    print("Here's occ nums and Q: {}\n{}".format(occ_nos[ij], Q[ij]))
+    def form_semicanonical(self, Q_list, F_vir):
+        # Get semicanonical transforms
+            # transform F_vir to PNO basis
+            # Diagonalize F_pno, get L
+            # save virtual orb. energies
+        eps_pno_list = [] 
+        L_list = []
+        # For each ij, F_pno is pno x pno dimension
+        for ij in range(self.no_occ * self.no_occ):
+            tmp1 = Q_list[ij]
+            F_pno = contract('pa,ab,bq->pq', tmp1.swapaxes(0, 1), F_vir, tmp1)
+            eps_pno, L = np.linalg.eigh(F_pno)
+            eps_pno_list.append(eps_pno)
+            L_list.append(L)
+            #if ij == 0:
+            #    print("Here's L: {}".format(L))
+        return L_list, eps_pno_list
 
-            #Q_full = np.load('Q_full.npy')
-            #print("The two Qs are the same: {}".format(np.allclose(Q_full, Q)))
-            # Truncate each set of pnos by occ no
-            self.s_pairs = np.zeros(self.no_occ * self.no_occ)
-            Q_list = []
-            avg = 0.0
-            sq_avg = 0.0
-            for ij in range(self.no_occ * self.no_occ):
-                survivors = occ_nos[ij] > pno_cut
-                #if ij == 0:
-                #    print("Survivors[0]:\n{}".format(survivors))
-                for a in range(self.no_vir):
-                    if survivors[a] == True:
-                        self.s_pairs[ij] += 1
-                avg += self.s_pairs[ij]
-                sq_avg += self.s_pairs[ij] * self.s_pairs[ij]
-                rm_pairs = self.no_vir - int(self.s_pairs[ij])
-                Q_list.append(self.Q[ij, :, rm_pairs:])
-                #if ij == 5:
-                #    print("Here's occ nums and Q: {}\n{}".format(occ_nos[ij], Q[ij]))
-                #    print("Here's occ nums and Q: {}\n{}".format(occ_nos[ij], Q[ij, :, rm_pairs:]))
-            
-            print("Tcut_PNO : {}".format(pno_cut))
-            print("Total no. of PNOs: {}".format(avg))
-            print("T2 ratio: {}".format(sq_avg/(self.no_occ * self.no_occ * self.no_vir * self.no_vir)))
-            avg = avg/(self.no_occ * self.no_occ)
-            print('Occupation numbers [0]:\n {}'.format(occ_nos[0]))
-            print("Numbers of surviving PNOs:\n{}".format(self.s_pairs))
-            print('Average number of PNOs:\n{}'.format(avg))
+    def build_PNO_lists(self, pno_cut, D, str_pair_list=None):
+        # Diagonalize pair densities to get PNOs (Q) and occ_nos
+        occ_nos = np.zeros((self.no_occ * self.no_occ, self.no_vir))
+        self.Q = np.zeros((self.no_occ * self.no_occ, self.no_vir, self.no_vir))
+        #print("Average density: {}".format(D[0]))
+        #print("numpy version: {}". format(np.__version__))
+        for ij in range(self.no_occ * self.no_occ):
+            occ_nos[ij], self.Q[ij] = np.linalg.eigh(D[ij])
+            #if ij == 0:
+            #    print("Here's occ nums and Q: {}\n{}".format(occ_nos[ij], Q[ij]))
 
-            # Get semicanonical transforms
-                # transform F_vir to PNO basis
-                # Diagonalize F_pno, get L
-                # save virtual orb. energies
-            eps_pno_list = [] 
-            L_list = []
-            # For each ij, F_pno is pno x pno dimension
-            for ij in range(self.no_occ * self.no_occ):
-                tmp1 = Q_list[ij]
-                F_pno = contract('pa,ab,bq->pq', tmp1.swapaxes(0, 1), F_vir, tmp1)
-                eps_pno, L = np.linalg.eigh(F_pno)
-                eps_pno_list.append(eps_pno)
-                L_list.append(L)
-                #if ij == 0:
-                #    print("Here's L: {}".format(L))
+        #Q_full = np.load('Q_full.npy')
+        #print("The two Qs are the same: {}".format(np.allclose(Q_full, Q)))
+        # Truncate each set of pnos by occ no
+        self.s_pairs = np.zeros(self.no_occ * self.no_occ)
+        Q_list = []
+        avg = 0.0
+        sq_avg = 0.0
+        for ij in range(self.no_occ * self.no_occ):
+            survivors = occ_nos[ij] > pno_cut
+            #if ij == 0:
+            #    print("Survivors[0]:\n{}".format(survivors))
+            for a in range(self.no_vir):
+                if survivors[a] == True:
+                    self.s_pairs[ij] += 1
+            avg += self.s_pairs[ij]
+            sq_avg += self.s_pairs[ij] * self.s_pairs[ij]
+            rm_pairs = self.no_vir - int(self.s_pairs[ij])
+            Q_list.append(self.Q[ij, :, rm_pairs:])
+            #if ij == 5:
+            #    print("Here's occ nums and Q: {}\n{}".format(occ_nos[ij], Q[ij]))
+            #    print("Here's occ nums and Q: {}\n{}".format(occ_nos[ij], Q[ij, :, rm_pairs:]))
+        
+        print("Tcut_PNO : {}".format(pno_cut))
+        print("Total no. of PNOs: {}".format(avg))
+        print("T2 ratio: {}".format(sq_avg/(self.no_occ * self.no_occ * self.no_vir * self.no_vir)))
+        avg = avg/(self.no_occ * self.no_occ)
+        print('Occupation numbers [0]:\n {}'.format(occ_nos[0]))
+        print("Numbers of surviving PNOs:\n{}".format(self.s_pairs))
+        print('Average number of PNOs:\n{}'.format(avg))
 
-            #print("The two Ls are the same: {}".format(np.allclose(L_full, L_list)))
-            return Q_list, L_list, eps_pno_list
+        return Q_list
 
     def pseudoresponse(self, z_ijab):
         Avvoo = contract('ijeb,ae->abij', self.t_ijab, self.A[self.no_occ:, self.no_occ:])
@@ -135,14 +136,15 @@ class HelperLocal(object):
             # Todo
 
             if pert == 'mu' or pert == 'l':
-                self.Q_list, self.L_list, self.eps_pno_list = self.build_PNO_lists(pno_cut, D, F_vir, str_pair_list=str_pair_list)
+                self.Q_list = self.build_PNO_lists(pno_cut, D, str_pair_list=str_pair_list)
             if pert == 'mu+unpert' or pert == 'l+unpert':
                 D_unpert = self.form_density(t_ijab)
-                self.Q_list, self.L_list, self.eps_pno_list = self.combine_PNO_lists(pno_cut, D, D_unpert, F_vir, str_pair_list=str_pair_list)
+                self.Q_list = self.combine_PNO_lists(pno_cut, D, D_unpert, str_pair_list=str_pair_list)
         else:
             print('Pert switch off. Initializing ground PNOs')
             D = self.form_density(t_ijab)
-            self.Q_list, self.L_list, self.eps_pno_list = self.build_PNO_lists(pno_cut, D, F_vir, str_pair_list=str_pair_list)
+            self.Q_list = self.build_PNO_lists(pno_cut, D, str_pair_list=str_pair_list)
+        self.L_list, self.eps_pno_list = self.form_semicanonical(self.Q_list, F_vir)
 
     def increment(self, Ria, Rijab, F_occ): 
     #def increment(self, Rijab, F_occ): 
@@ -211,29 +213,22 @@ class HelperLocal(object):
             total -= contract('ba,ab->', trans_MO, trans_t)
         return total
 
-    def combine_PNO_lists(self, pno_cut, D, D_unpert, F_vir, str_pair_list=None):
-        Q_pert, L_pert, eps_pno_pert = self.build_PNO_lists(pno_cut, D, F_vir, str_pair_list=str_pair_list)
-        Q_unpert, L_unpert, eps_pno_unpert = self.build_PNO_lists(pno_cut, D_unpert, F_vir, str_pair_list=str_pair_list)
-        Q_list = []
+    def combine_PNO_lists(self, pno_cut, D, D_unpert, str_pair_list=None):
+        try:
+            print("Unpert PNO cutoff: {}".format(pno_cut[0]))
+            Q_pert = self.build_PNO_lists(pno_cut[0], D, str_pair_list=str_pair_list)
+            print("Pert PNO cutoff: {}".format(pno_cut[1]))
+            Q_unpert = self.build_PNO_lists(pno_cut[1], D_unpert, str_pair_list=str_pair_list)
+            Q_list = []
+        except:
+            print("PNO cut is not a list with the right dimensions.")
         for ij in range(self.no_occ * self.no_occ):
             print("Shapes of Q_pert[{}] and Q_unpert[{}]: ({},{}) and ({},{})".format(ij, ij, len(Q_pert[ij]), len(Q_pert[ij][0]), len(Q_unpert[ij]), len(Q_unpert[ij][0]))) 
             Q_combined = np.hstack((Q_pert[ij], Q_unpert[ij]))
             print("Shape of Q_combined[{}]: {}".format(ij, Q_combined.shape))
+            print("Norm list [{}]: {}".format(ij, np.linalg.norm(Q_combined, axis=0)))
             Q_ortho, trash = np.linalg.qr(Q_combined)
+            print("Norm list [{}]: {}".format(ij, np.linalg.norm(Q_ortho, axis=0)))
             Q_list.append(Q_ortho)
 
-        # Get semicanonical transforms
-            # transform F_vir to PNO basis
-            # Diagonalize F_pno, get L
-            # save virtual orb. energies
-        eps_pno_list = [] 
-        L_list = []
-        # For each ij, F_pno is pno x pno dimension
-        for ij in range(self.no_occ * self.no_occ):
-            tmp1 = Q_list[ij]
-            F_pno = contract('pa,ab,bq->pq', tmp1.swapaxes(0, 1), F_vir, tmp1)
-            eps_pno, L = np.linalg.eigh(F_pno)
-            eps_pno_list.append(eps_pno)
-            L_list.append(L)
-        
-        return Q_list, L_list, eps_pno_list
+        return Q_list
