@@ -202,33 +202,41 @@ class HelperLocal(object):
         new_t = np.reshape(t_ijab, (self.no_occ*self.no_occ, self.no_vir, self.no_vir))
         for ij in range(self.no_occ * self.no_occ):
             rm_pairs = self.no_vir - int(self.s_pairs[ij])
-            print("rm_pairs: {}".format(rm_pairs))
+            #print("rm_pairs: {}".format(rm_pairs))
             if rm_pairs == 0:
                 continue
             Q_compute = self.Q[ij, :, :rm_pairs]
             trans_MO = contract('Aa,ab,bB->AB', Q_compute.T, new_MO[ij], Q_compute)
             trans_t = contract('Aa,ab,bB->AB', Q_compute.T, new_t[ij], Q_compute)
-            print("Shapes: {} \n{}".format(trans_MO.shape, trans_t.shape))
+            #print("Shapes: {} \n{}".format(trans_MO.shape, trans_t.shape))
             total += 2.0 * contract('ab,ab->', trans_MO, trans_t)
             total -= contract('ba,ab->', trans_MO, trans_t)
         return total
 
     def combine_PNO_lists(self, pno_cut, D, D_unpert, str_pair_list=None):
         try:
-            print("Unpert PNO cutoff: {}".format(pno_cut[0]))
+            print("Pert PNO cutoff: {}".format(pno_cut[0]))
             Q_pert = self.build_PNO_lists(pno_cut[0], D, str_pair_list=str_pair_list)
-            print("Pert PNO cutoff: {}".format(pno_cut[1]))
+            print("Unpert PNO cutoff: {}".format(pno_cut[1]))
             Q_unpert = self.build_PNO_lists(pno_cut[1], D_unpert, str_pair_list=str_pair_list)
             Q_list = []
         except:
             print("PNO cut is not a list with the right dimensions.")
+        avg = 0.0
+        sq_avg = 0.0
         for ij in range(self.no_occ * self.no_occ):
-            print("Shapes of Q_pert[{}] and Q_unpert[{}]: ({},{}) and ({},{})".format(ij, ij, len(Q_pert[ij]), len(Q_pert[ij][0]), len(Q_unpert[ij]), len(Q_unpert[ij][0]))) 
+            #print("Shapes of Q_pert[{}] and Q_unpert[{}]: ({},{}) and ({},{})".format(ij, ij, len(Q_pert[ij]), len(Q_pert[ij][0]), len(Q_unpert[ij]), len(Q_unpert[ij][0]))) 
             Q_combined = np.hstack((Q_pert[ij], Q_unpert[ij]))
-            print("Shape of Q_combined[{}]: {}".format(ij, Q_combined.shape))
-            print("Norm list [{}]: {}".format(ij, np.linalg.norm(Q_combined, axis=0)))
+            #print("Norm list [{}]: {}".format(ij, np.linalg.norm(Q_combined, axis=0)))
             Q_ortho, trash = np.linalg.qr(Q_combined)
-            print("Norm list [{}]: {}".format(ij, np.linalg.norm(Q_ortho, axis=0)))
+            #print("Norm list [{}]: {}".format(ij, np.linalg.norm(Q_ortho, axis=0)))
+            print("Shape of Q_ortho[{}]: {}".format(ij, Q_ortho.shape))
             Q_list.append(Q_ortho)
-
+            avg += Q_ortho.shape[1]
+            sq_avg += Q_ortho.shape[1] * Q_ortho.shape[1]
+            
+        avg = avg / (self.no_occ * self.no_occ)
+        t2_ratio = sq_avg /(self.no_occ * self.no_occ * self.no_vir * self.no_vir)
+        print("Average no. of combined PNOs: {}".format(avg))
+        print("T2 ratio: {}".format(t2_ratio))
         return Q_list

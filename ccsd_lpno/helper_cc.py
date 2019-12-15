@@ -386,9 +386,14 @@ class HelperCCEnergy(object):
         '''
         no_occ = t_ia.shape[0] 
         E_corr = 2.0 * contract('ia,ia->', self.F[:no_occ, no_occ:], t_ia)
+        singles_val = E_corr
         tmp_tau = self.make_tau(t_ia, t_ijab)
         E_corr += 2.0 * contract('ijab,ijab->', self.MO[:no_occ, :no_occ, no_occ:, no_occ:], tmp_tau)
         E_corr -= contract('ijba,ijab->', self.MO[:no_occ, :no_occ, no_occ:, no_occ:], tmp_tau)
+        doubles_val = E_corr - singles_val
+        
+        print("Singles contribution: {}".format(singles_val))
+        print("Doubles contribution: {}".format(doubles_val))
         return E_corr
 
     def do_CC(self, local=None, e_conv=1e-8, r_conv=1e-7, maxiter=40, max_diis=8, start_diis=0):
