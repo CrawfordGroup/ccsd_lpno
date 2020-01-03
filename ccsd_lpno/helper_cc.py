@@ -28,7 +28,7 @@ class HelperCCEnergy(object):
     :param e_cut: Weak pair cutoff for truncation of occupied pairs
     :type e_cut: double
     '''
-    def __init__(self, rhf_wfn, local=None, pert=False, pno_cut=0, e_cut=1e-8):
+    def __init__(self, rhf_wfn, local=None, pert=False, pno_cut=0, e_cut=0):
         # Set energy and wfn from Psi4
         print(type(rhf_wfn))
         self.wfn = rhf_wfn
@@ -128,21 +128,18 @@ class HelperCCEnergy(object):
         mp2_e -= contract('ijba,ijab->', self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.t_ijab)
         print("MP2 energy(without truncation: {}".format(mp2_e))
 
-        self.e_ij = np.zeros((self.no_occ, self.no_occ))
-        for i in range(self.no_occ):
-            for j in range(self.no_occ):
-                self.e_ij[i,j] += 2.0 * contract('ab,ab->', self.MO[i, j, self.no_occ:, self.no_occ:], self.t_ijab[i, j])
-                self.e_ij[i,j] -= contract('ba,ab->', self.MO[i, j, self.no_occ:, self.no_occ:], self.t_ijab[i, j])
 
         if local:
             # Initialize PNOs
             print('Local switch on. Initializing PNOs.')
             # Identify weak pairs using MP2 pair corr energy
-            #e_ij = contract('ijab,ijab->ij', self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.t_ijab)
+            self.e_ij = np.zeros((self.no_occ, self.no_occ))
+            self.e_ij += 2.0 * contract('ijab,ijab->ij', self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.t_ijab)
+            self.e_ij -= contract('ijba,ijab->ij', self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.t_ijab)
             #print('MP2 correlation energy: {}\n'.format(self.mp2_e))
             #print('Pair corr energy matrix:\n{}'.format(e_ij))
             str_pair_list = abs(self.e_ij) > e_cut
-            #print('Strong pair list:\n{}'.format(str_pair_list.reshape(1,-1)))
+            print('Strong pair list:\n{}'.format(str_pair_list))
 
             if pert:
                 print("Perturbed density on. Preparing perturbed density PNOs.")
@@ -157,23 +154,28 @@ class HelperCCEnergy(object):
                 Hbar_vv -= 2.0 * contract('mnfa,mnfe->ae', self.t_ijab, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
                 Hbar_vv += contract('mnfa,mnef->ae', self.t_ijab, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
                 Hbar_aa = Hbar_vv.diagonal().copy()
-                Hbar = np.concatenate((Hbar_ii, Hbar_aa))
+                denom_ia = Hbar_ii.reshape(-1,1) - Hbar_aa
+                denom_ijab = Hbar_ii.reshape(-1, 1, 1, 1) + Hbar_ii.reshape(-1, 1, 1) - Hbar_aa.reshape(-1, 1) - Hbar_aa
+                self.denom_tuple = (denom_ia, denom_ijab)
 
                 # Prepare the perturbation
                 A_list = {}
                 if pert == 'mu' or pert == 'mu+unpert':
                     ## Here, perturbation is dipole moment
                     dipole_array = self.mints.ao_dipole()
+                    dirn = ['X','Y','Z']
                     for i in range(3):
-                        A_list[i] = np.einsum('uj,vi,uv', self.C_arr, self.C_arr, np.asarray(dipole_array[i]))
+                        A_list[dirn[i]] = np.einsum('uj,vi,uv', self.C_arr, self.C_arr, np.asarray(dipole_array[i]))
                 if pert == 'l' or pert == 'l+unpert':
                     # Here, perturbation is angular momentum
                     angular_momentum = self.mints.ao_angular_momentum()
+                    dirn = ['X','Y','Z']
                     for i in range(3):
-                        A_list[i] = np.einsum('uj,vi,uv', self.C_arr, self.C_arr, np.asarray(angular_momentum[i]))
-                local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, pert=pert, A_list=A_list, Hbar=Hbar)            
+                        A_list[dirn[i]] = np.einsum('uj,vi,uv', self.C_arr, self.C_arr, np.asarray(angular_momentum[i]))
+                local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, pert=pert, A_list=A_list, str_pair_list=str_pair_list, denom=self.denom_tuple)            
             else:
                 local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, str_pair_list=str_pair_list)            
+
             self.pno_correct = local.PNO_correction(self.t_ijab, self.MO)
             Ria = np.zeros((self.no_occ, self.no_vir))
             self.tia, self.t_ijab = local.increment(Ria, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.F_occ)
@@ -420,7 +422,8 @@ class HelperCCEnergy(object):
         print('Iteration\t\t Correlation energy\tDifference\tRMS\nMP2\t\t\t {}'.format(self.old_e))
     # Set up DIIS
         diis = HelperDIIS(self.t_ia, self.t_ijab, max_diis)
-
+        
+        new_e = self.old_e
     # Iterate until convergence
         for i in range(maxiter):
             tau_t = self.make_taut(self.t_ia, self.t_ijab)

@@ -457,8 +457,6 @@ class HelperResp(object):
         self.y_ijab = pertA.y_ijab
 
     def linear_resp(self):
-        singles_val = 0.0
-        doubles_val = 0.0
         linresp = 0.0
         # <0| B_bar X1 |0>
         linresp += 2.0 * contract('ia,ia->', self.B.make_Aov(), self.x_ia)
@@ -471,7 +469,7 @@ class HelperResp(object):
         linresp -= 0.5 * contract('kaji,kb,ijab->', self.B.make_Aovoo(), self.x_ia, self.l_ijab)
         # <0| Y1 B_bar |0>
         linresp += contract('ai,ia->', self.B.make_Avo(), self.y_ia)
-        singles_val += linresp
+        #singles_val += linresp
         # <0| L1 B_bar X2 |0>
         linresp += 2.0 * contract('jb,ijab,ia->', self.B.make_Aov(), self.x_ijab, self.l_ia)
         linresp -= contract('jb,ijba,ia->', self.B.make_Aov(), self.x_ijab, self.l_ia)
@@ -484,10 +482,10 @@ class HelperResp(object):
         # <0| Y2 B_bar |0>
         linresp += 0.5 * contract('abij,ijab->', self.B.make_Avvoo(), self.y_ijab)
         linresp += 0.5 * contract('baji,ijab->', self.B.make_Avvoo(), self.y_ijab)
-        doubles_val = linresp - singles_val
+        #doubles_val = linresp - singles_val
 
-        print("Singles contribution: {}".format(singles_val))
-        print("Doubles contribution: {}".format(doubles_val))
+        #print("Singles contribution: {}".format(singles_val))
+        #print("Doubles contribution: {}".format(doubles_val))
 
         linresp *= -1.0
 

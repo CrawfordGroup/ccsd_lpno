@@ -58,17 +58,34 @@ localize=True
 #local=False
 pert='mu'
 
-def test_ppno():
+def test_or_lg():
     i = 0
     for cut in cutoffs:
         pno_cut = cut
 
         # Do the linear response calculation
-        optrot_lg, optrot_mvg = ccsd_lpno.do_linresp(wfn, omega_nm, mol, method='optrot', gauge='both', localize=localize, pert=pert, pno_cut=pno_cut) 
+        optrot_lg = ccsd_lpno.do_linresp(wfn, omega_nm, mol, method='optrot', gauge='length', localize=localize, pert=pert, pno_cut=pno_cut) 
         print("Optical rotation(LG) = {}".format(optrot_lg))
-        print("Optical rotation(MVG) = {}".format(optrot_mvg))
         assert np.allclose(optrot_lg, optrot_compare_list_lg[i], atol=1e-4)
+        i += 1
+        
+def test_or_mvg():
+    i = 0
+    for cut in cutoffs:
+        pno_cut = cut
+
+        # Do the linear response calculation
+        optrot_mvg = ccsd_lpno.do_linresp(wfn, omega_nm, mol, method='optrot', gauge='velocity', localize=localize, pert=pert, pno_cut=pno_cut) 
+        print("Optical rotation(MVG) = {}".format(optrot_mvg))
         assert np.allclose(optrot_mvg, optrot_compare_list_mvg[i], atol=1e-4)
+        i += 1
+
+def test_polar():
+    i = 0
+    for cut in cutoffs:
+        pno_cut = cut
+
+        # Do the linear response calculation
         polar = ccsd_lpno.do_linresp(wfn, omega_nm, mol, method='polar', localize=localize, pert=pert, pno_cut=pno_cut)
         assert np.allclose(polar, polar_compare_list[i], atol=1e-4)
         print("Polarizability = {}".format(polar))

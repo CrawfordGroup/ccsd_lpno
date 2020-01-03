@@ -50,13 +50,18 @@ class HelperLocal(object):
         return L_list, eps_pno_list
 
     def build_PNO_lists(self, pno_cut, D, str_pair_list=None):
+        no_occ_pairs = str_pair_list.shape[0] * str_pair_list.shape[1]
+        print(no_occ_pairs)
         # Diagonalize pair densities to get PNOs (Q) and occ_nos
         occ_nos = np.zeros((self.no_occ * self.no_occ, self.no_vir))
         self.Q = np.zeros((self.no_occ * self.no_occ, self.no_vir, self.no_vir))
         #print("Average density: {}".format(D[0]))
         #print("numpy version: {}". format(np.__version__))
         for ij in range(self.no_occ * self.no_occ):
-            occ_nos[ij], self.Q[ij] = np.linalg.eigh(D[ij])
+            i = ij // self.no_occ
+            j = ij % self.no_occ
+            if str_pair_list[i,j] == True:
+                occ_nos[ij], self.Q[ij] = np.linalg.eigh(D[ij])
             #if ij == 0:
             #    print("Here's occ nums and Q: {}\n{}".format(occ_nos[ij], Q[ij]))
 
@@ -100,18 +105,18 @@ class HelperLocal(object):
         presp = 2.0 * contract('ijab,ijab->', z_ijab, temp)
         presp -= contract('ijba,ijab->', z_ijab, temp)
 
-    def init_PNOs(self, pno_cut, t_ijab, F_vir, pert=None, str_pair_list=None, A_list=None, Hbar=None):
+    def init_PNOs(self, pno_cut, t_ijab, F_vir, pert=None, str_pair_list=None, A_list=None, denom=None):
 
         if pert:
             print('Pert switch on. Initializing pert PNOs')
 
-            Hbar_ii = Hbar[:self.no_occ]
-            Hbar_aa = Hbar[self.no_occ:]
-
             X_guess = {}
             i = 0
             D = np.zeros((self.no_occ * self.no_occ, self.no_vir, self.no_vir))
-            denom = Hbar_ii.reshape(-1, 1, 1, 1) + Hbar_ii.reshape(-1, 1, 1) - Hbar_aa.reshape(-1, 1) - Hbar_aa
+            denom_ia = denom[0]
+            denom_ijab = denom[1]
+
+            # Compute the correction here (I think)
 
             for A in A_list.values():
                 # Build guess Abar
@@ -124,7 +129,7 @@ class HelperLocal(object):
                 # Build guess X's
                 # X_ijab = Abar_ijab / Hbar_ii + Hbar_jj - Hbar_aa _ Hbar_bb
                 X_guess[i] = Abar.copy()
-                X_guess[i] /= denom
+                X_guess[i] /= denom_ijab
 
                 D += self.form_density(X_guess[i])
                 i += 1
@@ -240,3 +245,66 @@ class HelperLocal(object):
         print("Average no. of combined PNOs: {}".format(avg))
         print("T2 ratio: {}".format(t2_ratio))
         return Q_list
+
+    def plusplus_correction(self, t_ijab, A_list, B_list, D_ia, D_ijab):
+        new_t = np.reshape(t_ijab, (self.no_occ*self.no_occ, self.no_vir, self.no_vir))
+        new_l = new_t
+        dirn_list = ['X','Y','Z']
+        # Compute guess Xs, Ys, Ls
+        for dirn in dirn_list:
+            A = A_list[dirn]
+            # Make guess Xs
+            x_ia = A[self.no_occ:, :self.no_occ].copy()
+            x_ia += 2.0 * contract('miea,me->ai', t_ijab, A[:self.no_occ, self.no_occ:])
+            x_ia -= contract('imea,me->ai', self.t_ijab, A[:self.no_occ, self.no_occ:])
+            x_ia = x_ia / D_ia 
+            y_ia = x_ia.copy()
+
+            Avvoo = contract('ijeb,ae->abij', t_ijab, A[self.no_occ:, self.no_occ:])
+            Avvoo -= contract('mjab,mi->abij', t_ijab, A[:self.no_occ, :self.no_occ])
+            Abar = Avvoo.swapaxes(0,2).swapaxes(1,3)
+            Abar += Abar.swapaxes(0,1).swapaxes(2,3)
+            # X_ijab = Abar_ijab / Hbar_ii + Hbar_jj - Hbar_aa _ Hbar_bb
+            x_ijab = Abar.copy()
+            x_ijab /= D_ijab
+            y_ijab = x_ijab.copy()
+
+            x_ijab = np.reshape(x_ijab, (self.no_occ * self.no_occ, self.no_vir, self.no_vir))
+            for dirn2 in dirn_list:
+                B = B_list[dirn2]
+                val = 0.0
+                for ij in range(self.no_occ * self.no_occ):
+                    i = ij // self.no_occ
+                    j = ij % self.no_occ
+                    rm_pairs = self.no_vir - int(self.s_pairs[ij])
+                    if rm_pairs == 0:
+                        continue
+
+                    Q_compute = self.Q[ij, :, :rm_pairs]
+                    if i == j:
+                        x_ia_new = contract('Ab,b->A', Q_compute.T, x_ia[i])
+                        l_ia_new = contract('Ab,b->A', Q_compute.T, x_ia[i])
+                    x_ijab_new = contract('Aa,ab,bB->AB', Q_compute.T, x_ijab[ij], Q_compute)
+                    l_ijab_new = contract('Aa,ab,bB->AB', Q_compute.T, new_l[ij], Q_compute)
+                    if i == j:
+                        val += 2.0 * np.multiply(B[i], x_ia_new)
+                        val -= 0.5 * contract('b,a,ab->', B.make_Aovoo()[ij], x_ia_new, l_ijab_new)
+                        val += contract('bca,a,bc->', B.make_Avvvo()[i], x_ia_new, l_ijab_new)
+                        val -= 0.5 * contract('kaj,kb,jab->', B.make_Aovoo(ji))
+                        val += contract('a,a->', B.make_Aov()[i], y_ia_new)
+                    # Rest of eqns here when I figure them out
+
+                    val += 2.0 * contract('b,ab,a->', B.make_Aov()[j], x_ijab_new, l_ia_new)
+                    val -= contract('b,ba,a->', B.make_Aov()[j], x_ijab_new, l_ia_new)
+
+                    val -= 0.5 * contract('k,ab,kab->', B.make_Aoo()[i], x_ijab_new, l_ijab_new)
+                    val -= 0.5 * contract('k,ba,kab->', B.make_Aoo()[j], x_ijab_new, l_ijab_new)
+                    val += 0.5 * contract('ca,ab,cb->', B.make_Avv(), x_ijab_new, l_ijab_new)
+                    val += 0.5 * contract('cb,ab,ac->', B.make_Avv(), x_ijab_new, l_ijab_new)
+
+                    val += 0.5 * contract('ab,ab->', B.make_Avvoo()[ij], y_ijab_new)
+                    val += 0.5 * contract('ba,ab->', B.make_Avvoo()[ji], y_ijab_new)
+                    val *= -1.0
+
+                linresp[dirn+dirn2] = val
+
