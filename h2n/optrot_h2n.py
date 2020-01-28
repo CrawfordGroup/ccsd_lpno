@@ -58,13 +58,13 @@ for cut in cutoffs:
     # Set for LPNO
     localize=True
     #local=False
-    pert='mu'
+    pert=None
     pno_cut = cut
 
     # Do the linear response calculation
     #optrot_lg = ccsd_lpno.do_linresp(wfn, omega_nm, mol, method='optrot', gauge='length', localize=localize, pert=pert, pno_cut=pno_cut) 
     t0 = time.time()
-    optrot_mvg = ccsd_lpno.do_linresp(wfn, omega_nm, mol, method='optrot', gauge='velocity', localize=localize, pert=pert, pno_cut=pno_cut) 
+    optrot_mvg = ccsd_lpno.do_linresp(wfn, omega_nm, mol, method='optrot', gauge='velocity', localize=localize, pert=pert, pno_cut=pno_cut, e_cut=1e-4) 
     t1 = time.time()
     print("Total time: {}".format(t1 - t0))
     #optrot_lg_list['{}'.format(cut)] = optrot_lg

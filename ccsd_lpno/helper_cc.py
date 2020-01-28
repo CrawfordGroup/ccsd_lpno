@@ -27,8 +27,10 @@ class HelperCCEnergy(object):
     :type pno_cut: double
     :param e_cut: Weak pair cutoff for truncation of occupied pairs
     :type e_cut: double
+    :param ppno_correction: Flag to compute the PNO++ correction
+    :type ppno_correction: bool
     '''
-    def __init__(self, rhf_wfn, local=None, pert=False, pno_cut=0, e_cut=0):
+    def __init__(self, rhf_wfn, local=None, pert=False, pno_cut=0, e_cut=0, ppno_correction=False):
         # Set energy and wfn from Psi4
         print(type(rhf_wfn))
         self.wfn = rhf_wfn
@@ -172,13 +174,17 @@ class HelperCCEnergy(object):
                     dirn = ['X','Y','Z']
                     for i in range(3):
                         A_list[dirn[i]] = np.einsum('uj,vi,uv', self.C_arr, self.C_arr, np.asarray(angular_momentum[i]))
-                local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, pert=pert, A_list=A_list, str_pair_list=str_pair_list, denom=self.denom_tuple)            
+                if ppno_correction:
+                    local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, pert=pert, A_list=A_list, str_pair_list=str_pair_list, denom=self.denom_tuple, correction=ppno_correction)
+                else:
+                    local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, pert=pert, A_list=A_list, str_pair_list=str_pair_list, denom=self.denom_tuple)            
             else:
                 local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, str_pair_list=str_pair_list)            
 
-            self.pno_correct = local.PNO_correction(self.t_ijab, self.MO)
-            Ria = np.zeros((self.no_occ, self.no_vir))
-            self.tia, self.t_ijab = local.increment(Ria, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.F_occ)
+            if ppno_correction == False:
+                self.pno_correct = local.PNO_correction(self.t_ijab, self.MO)
+                Ria = np.zeros((self.no_occ, self.no_vir))
+                self.tia, self.t_ijab = local.increment(Ria, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.F_occ)
             #self.t_ijab = local.increment(Ria, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.F_occ)
         print("MP2 energy here: {}".format(self.corr_energy(self.t_ia, self.t_ijab))) 
 

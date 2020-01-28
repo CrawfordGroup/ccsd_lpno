@@ -17,7 +17,7 @@ from .local import *
 from psi4 import constants as pc 
 
 # Bring in wfn from psi4
-def do_linresp(wfn, omega_nm, mol, method='polar', gauge='length', localize=False, pert=None, pno_cut=0): 
+def do_linresp(wfn, omega_nm, mol, return_en=False, method='polar', gauge='length', localize=False, pert=None, pno_cut=0, e_cut=0): 
     
     # Create Helper_local object
     if localize:
@@ -27,7 +27,7 @@ def do_linresp(wfn, omega_nm, mol, method='polar', gauge='length', localize=Fals
         local=None
 
     # Create Helper_CCenergy object
-    hcc = HelperCCEnergy(wfn, local=local, pert=pert, pno_cut=pno_cut) 
+    hcc = HelperCCEnergy(wfn, local=local, pert=pert, pno_cut=pno_cut, e_cut=e_cut) 
     ccsd_e = hcc.do_CC(local=local, e_conv=1e-10, r_conv =1e-10, maxiter=40, start_diis=0)
 
     print('CCSD correlation energy: {}'.format(ccsd_e))
@@ -77,7 +77,10 @@ def do_linresp(wfn, omega_nm, mol, method='polar', gauge='length', localize=Fals
         trace = polar['XX'] + polar['YY'] + polar['ZZ']
         isotropic_polar = trace / 3.0
 
-        return isotropic_polar
+        if return_en == True:
+            return ccsd_e, isotropic_polar
+        else:
+            return isotropic_polar
     elif method=='optrot':
         if gauge=='both':
 
@@ -252,7 +255,10 @@ def do_linresp(wfn, omega_nm, mol, method='polar', gauge='length', localize=Fals
 
             optrot_mvg = optrot_vg - optrot_diff
             
-            return optrot_lg, optrot_mvg
+            if return_en == True:
+                return ccsd_e, optrot_lg, optrot_mvg
+            else:
+                return optrot_lg, optrot_mvg
             
         elif gauge=='length':
 
@@ -312,7 +318,10 @@ def do_linresp(wfn, omega_nm, mol, method='polar', gauge='length', localize=Fals
             # Have to multiply with omega for length gauge
             optrot_lg = prefactor * trace * omega
             
-            return optrot_lg
+            if return_en == True:
+                return ccsd_e, optrot_lg
+            else:
+                return optrot_lg
 
         elif gauge=='velocity':
             ### Velocity gauge OR calculation
@@ -430,5 +439,8 @@ def do_linresp(wfn, omega_nm, mol, method='polar', gauge='length', localize=Fals
 
             optrot_mvg = optrot_vg - optrot_diff
 
-            return optrot_mvg
+            if return_en == True:
+                return ccsd_e, optrot_mvg
+            else:
+                return optrot_mvg
 

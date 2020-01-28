@@ -49,9 +49,19 @@ class HelperLocal(object):
             #    print("Here's L: {}".format(L))
         return L_list, eps_pno_list
 
-    def build_PNO_lists(self, pno_cut, D, str_pair_list=None):
-        no_occ_pairs = str_pair_list.shape[0] * str_pair_list.shape[1]
-        print(no_occ_pairs)
+    def build_overlaps(self, Q_list):
+        S_list = []
+        for ij in range(self.no_occ*self.no_occ):
+            S_list1 = []
+            for kl in range(self.no_occ*self.no_occ):
+                S = Q_list[ij].T @ Q_list[kl]
+                S_list1.append(S)
+            S_list.append(S_list1)
+        return S_list
+
+    def build_PNO_lists(self, pno_cut, D, str_pair_list=None, correction=False):
+        no_occ_pairs = np.sum(str_pair_list)
+        print("No. of strong pairs: {}".format(no_occ_pairs))
         # Diagonalize pair densities to get PNOs (Q) and occ_nos
         occ_nos = np.zeros((self.no_occ * self.no_occ, self.no_vir))
         self.Q = np.zeros((self.no_occ * self.no_occ, self.no_vir, self.no_vir))
@@ -62,14 +72,13 @@ class HelperLocal(object):
             j = ij % self.no_occ
             if str_pair_list[i,j] == True:
                 occ_nos[ij], self.Q[ij] = np.linalg.eigh(D[ij])
-            #if ij == 0:
-            #    print("Here's occ nums and Q: {}\n{}".format(occ_nos[ij], Q[ij]))
 
         #Q_full = np.load('Q_full.npy')
         #print("The two Qs are the same: {}".format(np.allclose(Q_full, Q)))
         # Truncate each set of pnos by occ no
         self.s_pairs = np.zeros(self.no_occ * self.no_occ)
         Q_list = []
+        # This list is for the thrown-away PNOs
         avg = 0.0
         sq_avg = 0.0
         for ij in range(self.no_occ * self.no_occ):
@@ -82,7 +91,10 @@ class HelperLocal(object):
             avg += self.s_pairs[ij]
             sq_avg += self.s_pairs[ij] * self.s_pairs[ij]
             rm_pairs = self.no_vir - int(self.s_pairs[ij])
-            Q_list.append(self.Q[ij, :, rm_pairs:])
+            if correction:
+                Q_list.append(self.Q[ij, :, :rm_pairs])
+            else:
+                Q_list.append(self.Q[ij, :, rm_pairs:])
             #if ij == 5:
             #    print("Here's occ nums and Q: {}\n{}".format(occ_nos[ij], Q[ij]))
             #    print("Here's occ nums and Q: {}\n{}".format(occ_nos[ij], Q[ij, :, rm_pairs:]))
@@ -105,7 +117,7 @@ class HelperLocal(object):
         presp = 2.0 * contract('ijab,ijab->', z_ijab, temp)
         presp -= contract('ijba,ijab->', z_ijab, temp)
 
-    def init_PNOs(self, pno_cut, t_ijab, F_vir, pert=None, str_pair_list=None, A_list=None, denom=None):
+    def init_PNOs(self, pno_cut, t_ijab, F_vir, pert=None, str_pair_list=None, A_list=None, A_list_2=None, denom=None, correction=False):
 
         if pert:
             print('Pert switch on. Initializing pert PNOs')
@@ -139,17 +151,43 @@ class HelperLocal(object):
             # Identify weak pairs using MP2 pseudoresponse
             # requires the building of the guess Abar matrix and guess X's
             # Todo
+            if correction:
+                self.Q_trunc_list = self.build_PNO_lists(pno_cut, D, str_pair_list=str_pair_list, correction=correction)
+            else:
+                if pert == 'mu' or pert == 'l':
+                    self.Q_list = self.build_PNO_lists(pno_cut, D, str_pair_list=str_pair_list)
+                if pert == 'mu+unpert' or pert == 'l+unpert':
+                    D_unpert = self.form_density(t_ijab)
+                    self.Q_list = self.combine_PNO_lists(pno_cut, D, D_unpert, str_pair_list=str_pair_list)
+                if pert == 'mu+l+unpert':
+                    for A in A_list_2.values():
+                        # Build guess Abar
+                        # Abar_ijab = P_ij^ab (t_ij^eb A_ae - t_mj^ab A_mi)
+                        Avvoo = contract('ijeb,ae->abij', t_ijab, A[self.no_occ:, self.no_occ:])
+                        Avvoo -= contract('mjab,mi->abij', t_ijab, A[:self.no_occ, :self.no_occ])
+                        Abar = Avvoo.swapaxes(0,2).swapaxes(1,3)
+                        Abar += Abar.swapaxes(0,1).swapaxes(2,3)
 
-            if pert == 'mu' or pert == 'l':
-                self.Q_list = self.build_PNO_lists(pno_cut, D, str_pair_list=str_pair_list)
-            if pert == 'mu+unpert' or pert == 'l+unpert':
-                D_unpert = self.form_density(t_ijab)
-                self.Q_list = self.combine_PNO_lists(pno_cut, D, D_unpert, str_pair_list=str_pair_list)
+                        # Build guess X's
+                        # X_ijab = Abar_ijab / Hbar_ii + Hbar_jj - Hbar_aa _ Hbar_bb
+                        X_guess[i] = Abar.copy()
+                        X_guess[i] /= denom_ijab
+
+                        D_l += self.form_density(X_guess[i])
+                        i += 1
+                    #print("X_guess [0]: {}".format(X_guess[0]))
+                    D_l /= 3.0
+                    #print('Average density: {}'.format(D))
+                    # Identify weak pairs using MP2 pseudoresponse
+                    # requires the building of the guess Abar matrix and guess X's
+                    D_unpert = self.form_density(t_ijab)
+                    self.Q_list = self.combine_3_PNO_lists(pno_cut, D, D_l, D_unpert, str_pair_list=str_pair_list)
         else:
             print('Pert switch off. Initializing ground PNOs')
             D = self.form_density(t_ijab)
             self.Q_list = self.build_PNO_lists(pno_cut, D, str_pair_list=str_pair_list)
-        self.L_list, self.eps_pno_list = self.form_semicanonical(self.Q_list, F_vir)
+        if correction == False:
+            self.L_list, self.eps_pno_list = self.form_semicanonical(self.Q_list, F_vir)
 
     def increment(self, Ria, Rijab, F_occ): 
     #def increment(self, Rijab, F_occ): 
@@ -235,6 +273,33 @@ class HelperLocal(object):
             #print("Norm list [{}]: {}".format(ij, np.linalg.norm(Q_combined, axis=0)))
             Q_ortho, trash = np.linalg.qr(Q_combined)
             #print("Norm list [{}]: {}".format(ij, np.linalg.norm(Q_ortho, axis=0)))
+            print("Shape of Q_ortho[{}]: {}".format(ij, Q_ortho.shape))
+            Q_list.append(Q_ortho)
+            avg += Q_ortho.shape[1]
+            sq_avg += Q_ortho.shape[1] * Q_ortho.shape[1]
+            
+        avg = avg / (self.no_occ * self.no_occ)
+        t2_ratio = sq_avg /(self.no_occ * self.no_occ * self.no_vir * self.no_vir)
+        print("Average no. of combined PNOs: {}".format(avg))
+        print("T2 ratio: {}".format(t2_ratio))
+        return Q_list
+
+    def combine_3_PNO_lists(self, pno_cut, D_mu, D_l, D_unpert, str_pair_list=None):
+        try:
+            print("Pert_mu PNO cutoff: {}".format(pno_cut[0]))
+            Q_mu = self.build_PNO_lists(pno_cut[0], D_mu, str_pair_list=str_pair_list)
+            print("Pert_l PNO cutoff: {}".format(pno_cut[1]))
+            Q_l = self.build_PNO_lists(pno_cut[1], D_l, str_pair_list=str_pair_list)
+            print("Unpert PNO cutoff: {}".format(pno_cut[2]))
+            Q_unpert = self.build_PNO_lists(pno_cut[2], D_unpert, str_pair_list=str_pair_list)
+            Q_list = []
+        except:
+            print("PNO cut is not a list with the right dimensions.")
+        avg = 0.0
+        sq_avg = 0.0
+        for ij in range(self.no_occ * self.no_occ):
+            Q_combined = np.hstack((Q_mu[ij], Q_l[ij], Q_unpert[ij]))
+            Q_ortho, trash = np.linalg.qr(Q_combined)
             print("Shape of Q_ortho[{}]: {}".format(ij, Q_ortho.shape))
             Q_list.append(Q_ortho)
             avg += Q_ortho.shape[1]
