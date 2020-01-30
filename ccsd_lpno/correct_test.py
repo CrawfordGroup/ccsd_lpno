@@ -46,13 +46,15 @@ def full_ext_linresp(t_ijab, A_list, B_list, denom):
             # <0| L2 B_bar X1 |0>
             temp = contract('ijeb,me->mbij', t_ijab, B[:no_occ, no_occ:])
             temp1 = -1.0 * contract('miab,me->abei', t_ijab, B[:no_occ, no_occ:])
-            linresp -= 0.5 * contract('kbij,ka,ijab->', temp, x_ia, l_ijab)
             linresp += contract('bcaj,ia,ijbc->', temp1, x_ia, l_ijab)
+            linresp -= 0.5 * contract('kbij,ka,ijab->', temp, x_ia, l_ijab)
             linresp -= 0.5 * contract('kaji,kb,ijab->', temp, x_ia, l_ijab)
             # <0| Y1 B_bar |0>
-            temp2 = 2.0 * contract('miea,me->ai', t_ijab, B[:no_occ, no_occ:])
+            temp2 = B[no_occ:, :no_occ].copy()
+            temp2 += 2.0 * contract('miea,me->ai', t_ijab, B[:no_occ, no_occ:])
             temp2 -= contract('imea,me->ai', t_ijab, B[:no_occ, no_occ:])
             linresp += contract('ai,ia->', temp2, y_ia)
+            #print("term {} {}: {}".format(dirn, dirn1, linresp))
             # <0| L1 B_bar X2 |0>
             linresp += 2.0 * contract('jb,ijab,ia->', B[:no_occ, no_occ:], x_ijab, l_ia)
             linresp -= contract('jb,ijba,ia->', B[:no_occ, no_occ:], x_ijab, l_ia)
@@ -84,7 +86,7 @@ if __name__ == "__main__":
     psi4.core.set_output_file('correct_psi4.dat', False)
     np.set_printoptions(precision=12, linewidth=200, suppress=True)
 
-    geom = ccsd_lpno.mollib.mollib["h2_7"]
+    geom = ccsd_lpno.mollib.mollib["h2o2"]
     mol = psi4.geometry(geom)
 
     psi4.set_options({'basis': '6-31g', 'scf_type': 'pk',
@@ -113,6 +115,7 @@ if __name__ == "__main__":
         A_list[dirn] = np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(dipole_array[i]))
         B_list[dirn] = np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(angular_momentum[i]))
         i += 1
-
+    
+    #print("Denom tuple: {}".format(hcc.denom_tuple))
     lin_resp_value = full_ext_linresp(hcc.t_ijab, A_list, B_list, hcc.denom_tuple)
     print("The trace: {}".format(lin_resp_value))
