@@ -143,7 +143,7 @@ def do_linresp(wfn, omega_nm, mol, return_en=False, method='polar', gauge='lengt
             ### Velocity gauge OR calculation
             ### Form of linear response function: <<p;L>>
 
-            # Get the perturbation P
+            # Get the momentum P
             p_array = hcc.mints.ao_nabla()
 
             # Get the angular momentum L

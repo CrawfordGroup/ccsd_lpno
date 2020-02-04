@@ -113,7 +113,7 @@ if __name__ == "__main__":
     i = 0
     for dirn in dirn_list:
         A_list[dirn] = np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(dipole_array[i]))
-        B_list[dirn] = np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(angular_momentum[i]))
+        B_list[dirn] = -0.5 * np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(angular_momentum[i]))
         i += 1
     
     #print("Denom tuple: {}".format(hcc.denom_tuple))

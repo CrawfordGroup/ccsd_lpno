@@ -1,8 +1,10 @@
 import ccsd_lpno
 import psi4
 import numpy as np
-import pprint
+import argparse
+import json
 from opt_einsum import contract
+from psi4 import constants as pc
 
 def compute_correction(t_ijab, A_list, B_list, denom, Q_trunc_list, S_list):
     no_occ = t_ijab.shape[0]
@@ -157,15 +159,22 @@ def compute_correction(t_ijab, A_list, B_list, denom, Q_trunc_list, S_list):
     return total    
 
 if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--j", default='output.json', type=str, help="Output json filename")
+    parser.add_argument("--m", default='h2_2', type=str, help="Molecule from mollib")
+    parser.add_argument("--gauge", default='both', type=str, help="Gauge for OR calculation")
+    args = parser.parse_args()
+
     psi4.core.clean()
 
     psi4.core.set_output_file('plusplus_correct.dat', False)
     np.set_printoptions(precision=12, linewidth=200, suppress=True)
 
-    geom = ccsd_lpno.mollib.mollib["h2o2"]
+    geom = ccsd_lpno.mollib.mollib["{}".format(args.m)]
     mol = psi4.geometry(geom)
 
-    psi4.set_options({'basis': '6-31g', 'scf_type': 'pk',
+    psi4.set_options({'basis': 'aug-cc-pVDZ', 'scf_type': 'pk',
                       'freeze_core': 'false', 'e_convergence': 1e-12,
                       'd_convergence': 1e-12, 'save_jk': 'true'})
     
@@ -174,30 +183,101 @@ if __name__ == "__main__":
     e_scf, wfn = psi4.energy('SCF', return_wfn=True)
     print('SCF energy: {}\n'.format(e_scf))
     no_vir = wfn.nmo() - wfn.doccpi()[0] - wfn.frzcpi()[0]
+    
+    optrot_lg_list = {}
+    optrot_mvg_list = {}
+    polar_list = {}
+    # Setting cutoffs and wavelength in nm
+    cutoffs = [1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 5e-9, 5e-8, 5e-7, 5e-6, 5e-5, 5e-4]
+    omega_nm = 589
 
-    pert='mu'
-    pno_cut=1e-9
-    local = ccsd_lpno.HelperLocal(wfn.doccpi()[0], no_vir)
-    ppno_correct=True
-    hcc = ccsd_lpno.HelperCCEnergy(wfn, local=local, pert=pert, pno_cut=pno_cut, ppno_correction=ppno_correct)
-    #pp = pprint.PrettyPrinter(indent=4)
-    #pp.pprint(local.Q_trunc_list)
-    S_list = local.build_overlaps(local.Q_trunc_list)
+    for cut in cutoffs:
+        pert='mu'
+        pno_cut=cut
+        local = ccsd_lpno.HelperLocal(wfn.doccpi()[0], no_vir)
+        ppno_correct=True
+        hcc = ccsd_lpno.HelperCCEnergy(wfn, local=local, pert=pert, pno_cut=pno_cut, ppno_correction=ppno_correct)
+        S_list = local.build_overlaps(local.Q_trunc_list)
+        #print("List of overlaps: {}".format(S_list))
+        
+        # Length gauge
+        if args.gauge == 'polar':
+            # Prepare the perturbations
+            A_list = {}
+            dirn_list = ['X','Y','Z']
+            dipole_array = hcc.mints.ao_dipole()
+            i = 0
+            for dirn in dirn_list:
+                A_list[dirn] = np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(dipole_array[i]))
+                i += 1
 
-    #pp.pprint(S_list)
-    #print("List of overlaps: {}".format(S_list))
-    # Prepare the perturbations
-    A_list = {}
-    B_list = {}
-    dirn_list = ['X','Y','Z']
-    dipole_array = hcc.mints.ao_dipole()
-    angular_momentum = hcc.mints.ao_angular_momentum()
-    i = 0
-    for dirn in dirn_list:
-        A_list[dirn] = np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(dipole_array[i]))
-        B_list[dirn] = np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(angular_momentum[i]))
-        i += 1
+            #print("Denom tuple: {}".format(hcc.denom_tuple))
+            lin_resp_value = compute_correction(hcc.t_ijab, A_list, A_list, hcc.denom_tuple, local.Q_trunc_list, S_list)
+            
+            trace = lin_resp_value / 3.0
+            print("The trace: {}".format(lin_resp_value))
+            print("Polarizability correction (LG) ({} nm): {}".format(omega_nm, trace))
+            polar_list['{}'.format(cut)] = trace
 
-    #print("Denom tuple: {}".format(hcc.denom_tuple))
-    lin_resp_value = compute_correction(hcc.t_ijab, A_list, B_list, hcc.denom_tuple, local.Q_trunc_list, S_list)
-    print("The trace: {}".format(lin_resp_value))
+        if args.gauge == 'both':
+            # Prepare the perturbations
+            A_list = {}
+            B_list = {}
+            dirn_list = ['X','Y','Z']
+            dipole_array = hcc.mints.ao_dipole()
+            angular_momentum = hcc.mints.ao_angular_momentum()
+            i = 0
+            for dirn in dirn_list:
+                A_list[dirn] = np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(dipole_array[i]))
+                B_list[dirn] = -0.5 * np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(angular_momentum[i]))
+                i += 1
+
+            #print("Denom tuple: {}".format(hcc.denom_tuple))
+            lin_resp_value = compute_correction(hcc.t_ijab, A_list, B_list, hcc.denom_tuple, local.Q_trunc_list, S_list)
+            lin_resp_value -= compute_correction(hcc.t_ijab, B_list, A_list, hcc.denom_tuple, local.Q_trunc_list, S_list)
+            lin_resp_value *= 0.5
+            
+            trace = lin_resp_value / 3.0
+            Mass = 0
+            for atom in range(mol.natom()):
+                Mass += mol.mass(atom)
+            hbar = pc.h / (2.0 * np.pi)
+            prefactor = -72e6 * hbar**2 * pc.na / (pc.c**2 * pc.me**2 * Mass)
+            omega = (pc.c * pc.h * 1e9) / (pc.hartree2J * omega_nm) 
+            optrot_lg = prefactor * trace * omega
+            print("The trace: {}".format(lin_resp_value))
+            print("Optical rotation correction (LG) ({} nm): {}".format(omega_nm, optrot_lg))
+            optrot_lg_list['{}'.format(cut)] = optrot_lg
+
+            p_array = hcc.mints.ao_nabla()
+            i = 0
+            for dirn in dirn_list:
+                A_list[dirn] = np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(p_array[i]))
+                B_list[dirn] = -0.5 * np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(angular_momentum[i]))
+                i += 1
+                
+            lin_resp_value = compute_correction(hcc.t_ijab, A_list, B_list, hcc.denom_tuple, local.Q_trunc_list, S_list)
+            lin_resp_value += compute_correction(hcc.t_ijab, B_list, A_list, hcc.denom_tuple, local.Q_trunc_list, S_list)
+            lin_resp_value *= 0.5
+
+            trace = lin_resp_value / 3.0
+            Mass = 0
+            for atom in range(mol.natom()):
+                Mass += mol.mass(atom)
+            hbar = pc.h / (2.0 * np.pi)
+            prefactor = -72e6 * hbar**2 * pc.na / (pc.c**2 * pc.me**2 * Mass)
+            optrot_vg = prefactor * trace
+            print("The trace: {}".format(lin_resp_value))
+            print("Optical rotation correction (MVG) ({} nm): {}".format(omega_nm, optrot_vg))
+            optrot_mvg_list['{}'.format(cut)] = optrot_vg
+
+    optrot_data = {}
+    #optrot_data['LG'] = optrot_lg_list
+    #optrot_data['MVG'] = optrot_mvg_list
+    optrot_data['polar'] = polar_list
+    with open("{}".format(args.j), "w") as write_file:
+        json.dump(optrot_data, write_file, indent=4)
+
+    #print("List of optical rotations (LG, {} nm): {}".format(omega_nm, optrot_lg_list))
+    #print("List of optical rotations (MVG, {} nm): {}".format(omega_nm, optrot_mvg_list))
+    print("List of polarizabilities (LG, {} nm): {}".format(omega_nm, polar_list))
