@@ -27,7 +27,7 @@ def test_optrot():
     symmetry c1        
     """)
 
-    psi4.set_options({'basis': 'sto-3g', 'scf_type': 'pk',
+    psi4.set_options({'basis': '6-31g', 'scf_type': 'pk',
                       'freeze_core': 'false', 'e_convergence': 1e-10,
                       'd_convergence': 1e-10, 'save_jk': 'true'})
 
