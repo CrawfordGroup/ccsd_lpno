@@ -77,6 +77,24 @@ def do_linresp(wfn, omega_nm, mol, return_en=False, method='polar', gauge='lengt
         trace = polar['XX'] + polar['YY'] + polar['ZZ']
         isotropic_polar = trace / 3.0
 
+        '''new_t = np.reshape(hcc.t_ijab, (hcc.no_occ*hcc.no_occ, hcc.no_vir, hcc.no_vir))
+        new_x_x = np.reshape(hresp['XX'].x_ijab, (hcc.no_occ*hcc.no_occ, hcc.no_vir, hcc.no_vir))
+        new_x_y = np.reshape(hresp['YY'].x_ijab, (hcc.no_occ*hcc.no_occ, hcc.no_vir, hcc.no_vir))
+        new_x_z = np.reshape(hresp['ZZ'].x_ijab, (hcc.no_occ*hcc.no_occ, hcc.no_vir, hcc.no_vir))
+        NO_t2 = []
+        NO_x2_x = []
+        NO_x2_y = []
+        NO_x2_z = []
+        for ij in range(hcc.no_occ*hcc.no_occ):
+            NO_t2.append(contract('Aa,ab,bB->AB', local.Q[ij].T, new_t[ij], local.Q[ij]))
+            NO_x2_x.append(contract('Aa,ab,bB->AB', local.Q[ij].T, new_x_x[ij], local.Q[ij]))
+            NO_x2_y.append(contract('Aa,ab,bB->AB', local.Q[ij].T, new_x_y[ij], local.Q[ij]))
+            NO_x2_z.append(contract('Aa,ab,bB->AB', local.Q[ij].T, new_x_z[ij], local.Q[ij]))
+        np.save('T2_histogram', np.histogram(np.absolute(new_t), bins=1000, density=True))
+        np.save('X2_histogram_x', np.histogram(np.absolute(new_x_x), bins=1000, density=True))
+        np.save('X2_histogram_y', np.histogram(np.absolute(new_x_y), bins=1000, density=True))
+        np.save('X2_histogram_z', np.histogram(np.absolute(new_x_z), bins=1000, density=True))'''
+
         if return_en == True:
             return ccsd_e, isotropic_polar
         else:

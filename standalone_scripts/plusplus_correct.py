@@ -1,8 +1,9 @@
 '''
 This script uses the CCSD-LPNO response code
-to compute the MP2-level property correction
-to the PNO/PNO++ method by including the
-external (truncated) space
+to compute the MP2-level correction
+to the PNO/PNO++ method by transforming into the PNO space
+and subtracting the full-space value
+It computes MP2-level energy and property corrections
 '''
 
 import ccsd_lpno
@@ -12,6 +13,83 @@ import argparse
 import json
 from opt_einsum import contract
 from psi4 import constants as pc
+
+def full_ext_linresp(t_ijab, A_list, B_list, denom):
+    no_occ = t_ijab.shape[0]
+    no_vir = t_ijab.shape[2]
+    D_ia = denom[0]
+    D_ijab = denom[1]
+
+    #Using MP2 T2s, create guess X's, Y's, L's
+    t_ia = np.zeros((no_occ, no_vir))
+    l_ia = np.zeros((no_occ, no_vir))
+    l_ijab = 4.0 * t_ijab.copy() - 2.0 * t_ijab.swapaxes(2,3).copy()
+    
+    dirn_list = ['X','Y','Z']
+    total = 0.0
+    for dirn in dirn_list:
+        A = A_list[dirn]
+        # Make guess Xs
+        x_ia = A[no_occ:, :no_occ].copy()
+        x_ia += 2.0 * contract('miea,me->ai', t_ijab, A[:no_occ, no_occ:])
+        x_ia -= contract('imea,me->ai', t_ijab, A[:no_occ, no_occ:])
+        x_ia = x_ia.swapaxes(0,1) / D_ia
+        y_ia = 2.0 * x_ia.copy()
+
+        Avvoo = contract('ijeb,ae->abij', t_ijab, A[no_occ:, no_occ:])
+        Avvoo -= contract('mjab,mi->abij', t_ijab, A[:no_occ, :no_occ])
+        Abar = Avvoo.swapaxes(0,2).swapaxes(1,3)
+        Abar += Abar.swapaxes(0,1).swapaxes(2,3)
+        # X_ijab = Abar_ijab / Hbar_ii + Hbar_jj - Hbar_aa _ Hbar_bb
+        x_ijab = Abar.copy()
+        x_ijab /= D_ijab
+        y_ijab = 4.0 * x_ijab.copy() - 2.0 * x_ijab.swapaxes(2,3).copy()
+
+
+        for dirn1 in dirn_list:
+            B = B_list[dirn1]
+            linresp = 0.0 
+            # <0| B_bar X1 |0>
+            linresp += 2.0 * contract('ia,ia->', B[:no_occ, no_occ:], x_ia)
+            # <0| L1 B_bar X1 |0>
+            linresp += contract('ca,ia,ic->', B[no_occ:, no_occ:], x_ia, l_ia) #*
+            linresp -= contract('ik,ia,ka->', B[:no_occ, :no_occ], x_ia, l_ia) #*
+            # <0| L2 B_bar X1 |0>
+            temp = contract('ijeb,me->mbij', t_ijab, B[:no_occ, no_occ:])
+            temp1 = -1.0 * contract('miab,me->abei', t_ijab, B[:no_occ, no_occ:])
+            linresp += contract('bcaj,ia,ijbc->', temp1, x_ia, l_ijab)
+            linresp -= 0.5 * contract('kbij,ka,ijab->', temp, x_ia, l_ijab)
+            linresp -= 0.5 * contract('kaji,kb,ijab->', temp, x_ia, l_ijab)
+            # <0| Y1 B_bar |0>
+            temp2 = B[no_occ:, :no_occ].copy()
+            temp2 += 2.0 * contract('miea,me->ai', t_ijab, B[:no_occ, no_occ:])
+            temp2 -= contract('imea,me->ai', t_ijab, B[:no_occ, no_occ:])
+            linresp += contract('ai,ia->', temp2, y_ia)
+            #print("term {} {}: {}".format(dirn, dirn1, linresp))
+            # <0| L1 B_bar X2 |0>
+            linresp += 2.0 * contract('jb,ijab,ia->', B[:no_occ, no_occ:], x_ijab, l_ia)
+            linresp -= contract('jb,ijba,ia->', B[:no_occ, no_occ:], x_ijab, l_ia)
+            # <0| L2 B_bar X2 |0>
+            linresp -= 0.5 * contract('ki,kjab,ijab->', B[:no_occ, :no_occ], x_ijab, l_ijab)
+            linresp -= 0.5 * contract('kj,kiba,ijab->', B[:no_occ, :no_occ], x_ijab, l_ijab)
+            linresp += 0.5 * contract('ac,ijcb,ijab->', B[no_occ:, no_occ:], x_ijab, l_ijab)
+            linresp += 0.5 * contract('bc,ijac,ijab->', B[no_occ:, no_occ:], x_ijab, l_ijab)
+            #print("Polar2 : {}".format(linresp))
+            # <0| Y2 B_bar |0>
+            temp3 = contract('ijeb,ae->abij', t_ijab, B[no_occ:, no_occ:])
+            temp3 -= contract('mjab,mi->abij', t_ijab, B[:no_occ, :no_occ])
+            linresp += 0.5 * contract('abij,ijab->', temp3, y_ijab)
+            linresp += 0.5 * contract('baji,ijab->', temp3, y_ijab)
+
+            #print("Singles contribution: {}".format(singles_val))
+            #print("Doubles contribution: {}".format(doubles_val))
+
+            linresp *= -1.0
+            print("Here's the full-space contribution for A_{} B_{}: {}".format(dirn, dirn1, linresp))
+            if dirn == dirn1:
+                total += linresp
+
+    return total    
 
 def compute_correction(t_ijab, A_list, B_list, denom, Q_trunc_list, S_list):
     no_occ = t_ijab.shape[0]
@@ -179,13 +257,13 @@ if __name__ == "__main__":
 
     psi4.core.clean()
 
-    psi4.core.set_output_file('plusplus_correct.dat', False)
+    psi4.core.set_output_file('psi4_int_space.dat', False)
     np.set_printoptions(precision=12, linewidth=200, suppress=True)
 
     geom = ccsd_lpno.mollib.mollib["{}".format(args.m)]
     mol = psi4.geometry(geom)
 
-    psi4.set_options({'basis': 'aug-cc-pVDZ', 'scf_type': 'pk',
+    psi4.set_options({'basis': '6-31g', 'scf_type': 'pk',
                       'freeze_core': 'false', 'e_convergence': 1e-12,
                       'd_convergence': 1e-12, 'save_jk': 'true'})
     
@@ -198,17 +276,21 @@ if __name__ == "__main__":
     optrot_lg_list = {}
     optrot_mvg_list = {}
     polar_list = {}
+    mp2_en_list = {}
     # Setting cutoffs and wavelength in nm
-    cutoffs = [1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 5e-9, 5e-8, 5e-7, 5e-6, 5e-5, 5e-4]
+    #cutoffs = [1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 5e-9, 5e-8, 5e-7, 5e-6, 5e-5, 5e-4]
+    cutoffs = [1e-5]
     omega_nm = 589
+    omega = (pc.c * pc.h * 1e9) / (pc.hartree2J * omega_nm) 
 
     for cut in cutoffs:
         pert='mu'
         pno_cut=cut
         local = ccsd_lpno.HelperLocal(wfn.doccpi()[0], no_vir)
-        ppno_correct=True
-        hcc = ccsd_lpno.HelperCCEnergy(wfn, local=local, pert=pert, pno_cut=pno_cut, ppno_correction=ppno_correct)
-        S_list = local.build_overlaps(local.Q_trunc_list)
+        hcc = ccsd_lpno.HelperCCEnergy(wfn, local=local, pert=pert, pno_cut=pno_cut, omega=omega)
+        #print("Q_list:\n{}".format(local.Q_list))
+        mp2_en_list['{}'.format(cut)] = hcc.pno_correct
+        S_list = local.build_overlaps(local.Q_list)
         #print("List of overlaps: {}".format(S_list))
         
         # Length gauge
@@ -223,11 +305,13 @@ if __name__ == "__main__":
                 i += 1
 
             #print("Denom tuple: {}".format(hcc.denom_tuple))
-            lin_resp_value = compute_correction(hcc.t_ijab, A_list, A_list, hcc.denom_tuple, local.Q_trunc_list, S_list)
+            lin_resp_value = full_ext_linresp(hcc.t_ijab, A_list, A_list, hcc.denom_tuple)
+            lin_resp_value -= compute_correction(hcc.t_ijab, A_list, A_list, hcc.denom_tuple, local.Q_list, S_list)
             
-            trace = lin_resp_value / 3.0
+            correction = lin_resp_value / 3.0
             print("The trace: {}".format(lin_resp_value))
-            print("Polarizability correction (LG) ({} nm): {}".format(omega_nm, trace))
+            print("Energy correction: {}".format(hcc.pno_correct))
+            print("Polarizability correction (LG) ({} nm): {}".format(omega_nm, correction))
             polar_list['{}'.format(cut)] = trace
 
         if args.gauge == 'both':
@@ -243,9 +327,14 @@ if __name__ == "__main__":
                 B_list[dirn] = -0.5 * np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(angular_momentum[i]))
                 i += 1
 
-            #print("Denom tuple: {}".format(hcc.denom_tuple))
-            lin_resp_value = compute_correction(hcc.t_ijab, A_list, B_list, hcc.denom_tuple, local.Q_trunc_list, S_list)
-            lin_resp_value -= compute_correction(hcc.t_ijab, B_list, A_list, hcc.denom_tuple, local.Q_trunc_list, S_list)
+            # <<mu; L>> correction
+            lin_resp_value = full_ext_linresp(hcc.t_ijab, A_list, B_list, hcc.denom_tuple)
+            lin_resp_value -= compute_correction(hcc.t_ijab, A_list, B_list, hcc.denom_tuple, local.Q_list, S_list)
+            print("\nThe trace for <<mu;L>>: {}".format(lin_resp_value))
+            # <<L; mu>> correction
+            lin_resp_value -= full_ext_linresp(hcc.t_ijab, B_list, A_list, hcc.denom_tuple)
+            lin_resp_value += compute_correction(hcc.t_ijab, B_list, A_list, hcc.denom_tuple, local.Q_list, S_list)
+            print("\nThe trace for <<L;mu>>: {}".format(lin_resp_value))
             lin_resp_value *= 0.5
             
             trace = lin_resp_value / 3.0
@@ -254,9 +343,9 @@ if __name__ == "__main__":
                 Mass += mol.mass(atom)
             hbar = pc.h / (2.0 * np.pi)
             prefactor = -72e6 * hbar**2 * pc.na / (pc.c**2 * pc.me**2 * Mass)
-            omega = (pc.c * pc.h * 1e9) / (pc.hartree2J * omega_nm) 
             optrot_lg = prefactor * trace * omega
             print("The trace: {}".format(lin_resp_value))
+            print("Energy correction: {}".format(hcc.pno_correct))
             print("Optical rotation correction (LG) ({} nm): {}".format(omega_nm, optrot_lg))
             optrot_lg_list['{}'.format(cut)] = optrot_lg
 
@@ -266,9 +355,15 @@ if __name__ == "__main__":
                 A_list[dirn] = np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(p_array[i]))
                 B_list[dirn] = -0.5 * np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(angular_momentum[i]))
                 i += 1
-                
-            lin_resp_value = compute_correction(hcc.t_ijab, A_list, B_list, hcc.denom_tuple, local.Q_trunc_list, S_list)
-            lin_resp_value += compute_correction(hcc.t_ijab, B_list, A_list, hcc.denom_tuple, local.Q_trunc_list, S_list)
+            
+            # <<p;L>> correction
+            lin_resp_value = full_ext_linresp(hcc.tijab, A_list, B_list, hcc.denom_tuple)
+            lin_resp_value -= compute_correction(hcc.t_ijab, A_list, B_list, hcc.denom_tuple, local.Q_list, S_list)
+            print("\nThe trace for <<p;L>>: {}".format(lin_resp_value))
+            # <<L;p>> correction
+            lin_resp_value += full_ext_linresp(hcc.tijab, A_list, B_list, hcc.denom_tuple)
+            lin_resp_value -= compute_correction(hcc.t_ijab, B_list, A_list, hcc.denom_tuple, local.Q_list, S_list)
+            print("\nThe trace for <<L;p>>: {}".format(lin_resp_value))
             lin_resp_value *= 0.5
 
             trace = lin_resp_value / 3.0
@@ -286,6 +381,7 @@ if __name__ == "__main__":
     optrot_data['LG'] = optrot_lg_list
     optrot_data['MVG'] = optrot_mvg_list
     #optrot_data['polar'] = polar_list
+    optrot_data['mp2'] = mp2_en_list
     with open("{}".format(args.j), "w") as write_file:
         json.dump(optrot_data, write_file, indent=4)
 

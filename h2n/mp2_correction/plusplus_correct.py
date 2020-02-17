@@ -233,8 +233,8 @@ if __name__ == "__main__":
                 i += 1
 
             #print("Denom tuple: {}".format(hcc.denom_tuple))
-            lin_resp_value = compute_correction(hcc.t_ijab, A_list, B_list, hcc.denom_tuple, local.Q_trunc_list, S_list)
-            lin_resp_value -= compute_correction(hcc.t_ijab, B_list, A_list, hcc.denom_tuple, local.Q_trunc_list, S_list)
+            lin_resp_value = compute_correction(hcc.t_ijab, A_list, B_list, hcc.denom_tuple, local.Q_list, S_list)
+            lin_resp_value -= compute_correction(hcc.t_ijab, B_list, A_list, hcc.denom_tuple, local.Q_list, S_list)
             lin_resp_value *= 0.5
             
             trace = lin_resp_value / 3.0
@@ -256,8 +256,8 @@ if __name__ == "__main__":
                 B_list[dirn] = -0.5 * np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(angular_momentum[i]))
                 i += 1
                 
-            lin_resp_value = compute_correction(hcc.t_ijab, A_list, B_list, hcc.denom_tuple, local.Q_trunc_list, S_list)
-            lin_resp_value += compute_correction(hcc.t_ijab, B_list, A_list, hcc.denom_tuple, local.Q_trunc_list, S_list)
+            lin_resp_value = compute_correction(hcc.t_ijab, A_list, B_list, hcc.denom_tuple, local.Q_list, S_list)
+            lin_resp_value += compute_correction(hcc.t_ijab, B_list, A_list, hcc.denom_tuple, local.Q_list, S_list)
             lin_resp_value *= 0.5
 
             trace = lin_resp_value / 3.0

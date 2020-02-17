@@ -28,7 +28,7 @@ class HelperLocal(object):
             D[ij] *= 2.0 / (1.0 + int(i==j))
             D[ij] += D[ij].T
             D[ij] *= 0.5
-        #print("Density matrix [0, 0]: \n{}".format(self.D[0]))
+        #print("Density matrix [1,1]: {}".format(D[1]))
         return D
 
     def form_semicanonical(self, Q_list, F_vir):
@@ -54,12 +54,12 @@ class HelperLocal(object):
         for ij in range(self.no_occ*self.no_occ):
             S_list1 = []
             for kl in range(self.no_occ*self.no_occ):
-                S = Q_list[ij].T @ Q_list[kl]
+                S = np.dot(Q_list[ij].T, Q_list[kl])
                 S_list1.append(S)
             S_list.append(S_list1)
         return S_list
 
-    def build_PNO_lists(self, pno_cut, D, str_pair_list=None, correction=False):
+    def build_PNO_lists(self, pno_cut, D, str_pair_list=None):
         no_occ_pairs = np.sum(str_pair_list)
         print("No. of strong pairs: {}".format(no_occ_pairs))
         # Diagonalize pair densities to get PNOs (Q) and occ_nos
@@ -91,10 +91,7 @@ class HelperLocal(object):
             avg += self.s_pairs[ij]
             sq_avg += self.s_pairs[ij] * self.s_pairs[ij]
             rm_pairs = self.no_vir - int(self.s_pairs[ij])
-            if correction:
-                Q_list.append(self.Q[ij, :, :rm_pairs])
-            else:
-                Q_list.append(self.Q[ij, :, rm_pairs:])
+            Q_list.append(self.Q[ij, :, rm_pairs:])
             #if ij == 5:
             #    print("Here's occ nums and Q: {}\n{}".format(occ_nos[ij], Q[ij]))
             #    print("Here's occ nums and Q: {}\n{}".format(occ_nos[ij], Q[ij, :, rm_pairs:]))
@@ -117,7 +114,7 @@ class HelperLocal(object):
         presp = 2.0 * contract('ijab,ijab->', z_ijab, temp)
         presp -= contract('ijba,ijab->', z_ijab, temp)
 
-    def init_PNOs(self, pno_cut, t_ijab, F_vir, pert=None, str_pair_list=None, A_list=None, A_list_2=None, denom=None, correction=False):
+    def init_PNOs(self, pno_cut, t_ijab, F_vir, pert=None, str_pair_list=None, A_list=None, A_list_2=None, denom=None):
 
         if pert:
             print('Pert switch on. Initializing pert PNOs')
@@ -127,8 +124,6 @@ class HelperLocal(object):
             D = np.zeros((self.no_occ * self.no_occ, self.no_vir, self.no_vir))
             denom_ia = denom[0]
             denom_ijab = denom[1]
-
-            # Compute the correction here (I think)
 
             for A in A_list.values():
                 # Build guess Abar
@@ -149,45 +144,41 @@ class HelperLocal(object):
             D /= 3.0
             #print('Average density: {}'.format(D))
             # Identify weak pairs using MP2 pseudoresponse
-            # requires the building of the guess Abar matrix and guess X's
             # Todo
-            if correction:
-                self.Q_trunc_list = self.build_PNO_lists(pno_cut, D, str_pair_list=str_pair_list, correction=correction)
-            else:
-                if pert == 'mu' or pert == 'l':
-                    self.Q_list = self.build_PNO_lists(pno_cut, D, str_pair_list=str_pair_list)
-                if pert == 'mu+unpert' or pert == 'l+unpert':
-                    D_unpert = self.form_density(t_ijab)
-                    self.Q_list = self.combine_PNO_lists(pno_cut, D, D_unpert, str_pair_list=str_pair_list)
-                if pert == 'mu+l+unpert':
-                    for A in A_list_2.values():
-                        # Build guess Abar
-                        # Abar_ijab = P_ij^ab (t_ij^eb A_ae - t_mj^ab A_mi)
-                        Avvoo = contract('ijeb,ae->abij', t_ijab, A[self.no_occ:, self.no_occ:])
-                        Avvoo -= contract('mjab,mi->abij', t_ijab, A[:self.no_occ, :self.no_occ])
-                        Abar = Avvoo.swapaxes(0,2).swapaxes(1,3)
-                        Abar += Abar.swapaxes(0,1).swapaxes(2,3)
 
-                        # Build guess X's
-                        # X_ijab = Abar_ijab / Hbar_ii + Hbar_jj - Hbar_aa _ Hbar_bb
-                        X_guess[i] = Abar.copy()
-                        X_guess[i] /= denom_ijab
+            if pert == 'mu' or pert == 'l':
+                self.Q_list = self.build_PNO_lists(pno_cut, D, str_pair_list=str_pair_list)
+            if pert == 'mu+unpert' or pert == 'l+unpert':
+                D_unpert = self.form_density(t_ijab)
+                self.Q_list = self.combine_PNO_lists(pno_cut, D, D_unpert, str_pair_list=str_pair_list)
+            if pert == 'mu+l+unpert':
+                for A in A_list_2.values():
+                    # Build guess Abar
+                    # Abar_ijab = P_ij^ab (t_ij^eb A_ae - t_mj^ab A_mi)
+                    Avvoo = contract('ijeb,ae->abij', t_ijab, A[self.no_occ:, self.no_occ:])
+                    Avvoo -= contract('mjab,mi->abij', t_ijab, A[:self.no_occ, :self.no_occ])
+                    Abar = Avvoo.swapaxes(0,2).swapaxes(1,3)
+                    Abar += Abar.swapaxes(0,1).swapaxes(2,3)
 
-                        D_l += self.form_density(X_guess[i])
+                    # Build guess X's
+                    # X_ijab = Abar_ijab / Hbar_ii + Hbar_jj - Hbar_aa _ Hbar_bb
+                    X_guess[i] = Abar.copy()
+                    X_guess[i] /= denom_ijab
+
+                    D_l += self.form_density(X_guess[i])
                         i += 1
                     #print("X_guess [0]: {}".format(X_guess[0]))
-                    D_l /= 3.0
-                    #print('Average density: {}'.format(D))
-                    # Identify weak pairs using MP2 pseudoresponse
-                    # requires the building of the guess Abar matrix and guess X's
-                    D_unpert = self.form_density(t_ijab)
-                    self.Q_list = self.combine_3_PNO_lists(pno_cut, D, D_l, D_unpert, str_pair_list=str_pair_list)
+                D_l /= 3.0
+                #print('Average density: {}'.format(D))
+                # Identify weak pairs using MP2 pseudoresponse
+                # requires the building of the guess Abar matrix and guess X's
+                D_unpert = self.form_density(t_ijab)
+                self.Q_list = self.combine_3_PNO_lists(pno_cut, D, D_l, D_unpert, str_pair_list=str_pair_list)
         else:
             print('Pert switch off. Initializing ground PNOs')
             D = self.form_density(t_ijab)
             self.Q_list = self.build_PNO_lists(pno_cut, D, str_pair_list=str_pair_list)
-        if correction == False:
-            self.L_list, self.eps_pno_list = self.form_semicanonical(self.Q_list, F_vir)
+        self.L_list, self.eps_pno_list = self.form_semicanonical(self.Q_list, F_vir)
 
     def increment(self, Ria, Rijab, F_occ): 
     #def increment(self, Rijab, F_occ): 
@@ -239,21 +230,28 @@ class HelperLocal(object):
         return new_tia, new_tijab
         #return new_tijab
 
+    # MP2 energy correction = Full space MP2 value - PNO value
     def PNO_correction(self, t_ijab, MO):
         total = 0
         new_MO = np.reshape(MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], (self.no_occ*self.no_occ, self.no_vir, self.no_vir))
         new_t = np.reshape(t_ijab, (self.no_occ*self.no_occ, self.no_vir, self.no_vir))
         for ij in range(self.no_occ * self.no_occ):
             rm_pairs = self.no_vir - int(self.s_pairs[ij])
-            #print("rm_pairs: {}".format(rm_pairs))
             if rm_pairs == 0:
                 continue
-            Q_compute = self.Q[ij, :, :rm_pairs]
+            Q_compute = self.Q[ij, :, rm_pairs:]
             trans_MO = contract('Aa,ab,bB->AB', Q_compute.T, new_MO[ij], Q_compute)
             trans_t = contract('Aa,ab,bB->AB', Q_compute.T, new_t[ij], Q_compute)
+            trans_MO_full = contract('Aa,ab,bB->AB', self.Q[ij].T, new_MO[ij], self.Q[ij])
+            trans_t_full = contract('Aa,ab,bB->AB', self.Q[ij].T, new_t[ij], self.Q[ij])
             #print("Shapes: {} \n{}".format(trans_MO.shape, trans_t.shape))
-            total += 2.0 * contract('ab,ab->', trans_MO, trans_t)
-            total -= contract('ba,ab->', trans_MO, trans_t)
+            total += 2.0 * contract('ab,ab->', trans_MO_full, trans_t_full)
+            total -= contract('ba,ab->', trans_MO_full, trans_t_full)
+            total -= 2.0 * contract('ab,ab->', trans_MO2, trans_t2)
+            total += contract('ba,ab->', trans_MO2, trans_t2)
+
+        print("Total: {}".format(total))
+
         return total
 
     def combine_PNO_lists(self, pno_cut, D, D_unpert, str_pair_list=None):
