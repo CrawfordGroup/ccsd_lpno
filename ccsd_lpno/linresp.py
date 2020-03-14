@@ -26,8 +26,14 @@ def do_linresp(wfn, omega_nm, mol, return_en=False, method='polar', gauge='lengt
     else:
         local=None
 
+    # Set the frequency in hartrees
+    if omega_nm == 0:
+        omega = 0.0
+    else:
+        omega = (pc.c * pc.h * 1e9) / (pc.hartree2J * omega_nm)
+
     # Create Helper_CCenergy object
-    hcc = HelperCCEnergy(wfn, local=local, pert=pert, pno_cut=pno_cut, e_cut=e_cut) 
+    hcc = HelperCCEnergy(wfn, local=local, pert=pert, pno_cut=pno_cut, e_cut=e_cut, omega=omega) 
     ccsd_e = hcc.do_CC(local=local, e_conv=1e-10, r_conv =1e-10, maxiter=40, start_diis=0)
 
     print('CCSD correlation energy: {}'.format(ccsd_e))
@@ -37,9 +43,6 @@ def do_linresp(wfn, omega_nm, mol, return_en=False, method='polar', gauge='lengt
     # Create HelperLamdba object
     lda = HelperLambda(hcc, hbar)
     pseudo_e = lda.iterate(local=local, e_conv=1e-8, r_conv =1e-10, maxiter=30)
-
-    # Set the frequency in hartrees
-    omega = (pc.c * pc.h * 1e9) / (pc.hartree2J * omega_nm)
 
     if method=='polar':
         # Get the perturbation A for Xs and Ys

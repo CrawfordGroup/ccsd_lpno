@@ -152,6 +152,8 @@ class HelperLocal(object):
                 D_unpert = self.form_density(t_ijab)
                 self.Q_list = self.combine_PNO_lists(pno_cut, D, D_unpert, str_pair_list=str_pair_list)
             if pert == 'mu+l+unpert':
+                i = 0
+                D_l = np.zeros((self.no_occ * self.no_occ, self.no_vir, self.no_vir))
                 for A in A_list_2.values():
                     # Build guess Abar
                     # Abar_ijab = P_ij^ab (t_ij^eb A_ae - t_mj^ab A_mi)
@@ -166,7 +168,7 @@ class HelperLocal(object):
                     X_guess[i] /= denom_ijab
 
                     D_l += self.form_density(X_guess[i])
-                        i += 1
+                    i += 1
                     #print("X_guess [0]: {}".format(X_guess[0]))
                 D_l /= 3.0
                 #print('Average density: {}'.format(D))
@@ -237,9 +239,9 @@ class HelperLocal(object):
         new_t = np.reshape(t_ijab, (self.no_occ*self.no_occ, self.no_vir, self.no_vir))
         for ij in range(self.no_occ * self.no_occ):
             rm_pairs = self.no_vir - int(self.s_pairs[ij])
-            if rm_pairs == 0:
-                continue
-            Q_compute = self.Q[ij, :, rm_pairs:]
+            #if rm_pairs == 0:
+            #    continue
+            Q_compute = self.Q_list[ij]
             trans_MO = contract('Aa,ab,bB->AB', Q_compute.T, new_MO[ij], Q_compute)
             trans_t = contract('Aa,ab,bB->AB', Q_compute.T, new_t[ij], Q_compute)
             trans_MO_full = contract('Aa,ab,bB->AB', self.Q[ij].T, new_MO[ij], self.Q[ij])
@@ -247,8 +249,8 @@ class HelperLocal(object):
             #print("Shapes: {} \n{}".format(trans_MO.shape, trans_t.shape))
             total += 2.0 * contract('ab,ab->', trans_MO_full, trans_t_full)
             total -= contract('ba,ab->', trans_MO_full, trans_t_full)
-            total -= 2.0 * contract('ab,ab->', trans_MO2, trans_t2)
-            total += contract('ba,ab->', trans_MO2, trans_t2)
+            total -= 2.0 * contract('ab,ab->', trans_MO, trans_t)
+            total += contract('ba,ab->', trans_MO, trans_t)
 
         print("Total: {}".format(total))
 

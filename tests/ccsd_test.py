@@ -71,7 +71,7 @@ def test_ccsd():
     # Create Helper_CCenergy object
     hcc = ccsd_lpno.HelperCCEnergy(wfn, local=local, pno_cut=pno_cut) 
 
-    ccsd_e = hcc.do_CC(local=False, e_conv=E_conv, r_conv=R_conv, maxiter=40, start_diis=0)
+    ccsd_e = hcc.do_CC(local=local, e_conv=E_conv, r_conv=R_conv, maxiter=40, start_diis=0)
 
     print('CCSD correlation energy: {}'.format(ccsd_e))
 
