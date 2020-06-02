@@ -30,7 +30,7 @@ class HelperCCEnergy(object):
     :param ppno_correction: Flag to compute the PNO++ correction
     :type ppno_correction: bool
     '''
-    def __init__(self, rhf_wfn, local=None, pert=False, pno_cut=0, e_cut=0, omega=0.0774):
+    def __init__(self, rhf_wfn, local=None, local_occ=True, pert=False, pno_cut=0, e_cut=0, omega=0.0774):
         # Set energy and wfn from Psi4
         print(type(rhf_wfn))
         self.wfn = rhf_wfn
@@ -66,7 +66,11 @@ class HelperCCEnergy(object):
         # Make MO integrals
         # Build Fock matrix
         if local:
+            local_occ = True
+
+        if local_occ:
             # Localizing occupied orbitals using Boys localization procedure
+            print("Localize occupied orbital switch on. Localizing occupied orbitals.")
             Local = psi4.core.Localizer.build("PIPEK_MEZEY", basis, self.C_occ)
             Local.localize()
             new_C_occ = Local.L
@@ -123,9 +127,7 @@ class HelperCCEnergy(object):
         self.d_ijab = self.eps_occ.reshape(-1, 1, 1, 1) + self.eps_occ.reshape(-1, 1, 1) - self.eps_vir.reshape(-1, 1) - self.eps_vir
         self.t_ijab = self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:].copy()
         # T2s matching!
-        #print("T2s[0,0]:\{}".format(self.t_ijab[0,0]))
         self.t_ijab /= self.d_ijab
-        #print("denoms[0,0]:\{}".format(self.d_ijab[0,0]))
         mp2_e = 2.0 * contract('ijab,ijab->', self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.t_ijab)
         mp2_e -= contract('ijba,ijab->', self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.t_ijab)
         print("MP2 energy(without truncation): {}".format(mp2_e))
@@ -183,7 +185,9 @@ class HelperCCEnergy(object):
             self.pno_correct = local.PNO_correction(self.t_ijab, self.MO)
             print("PNO correction:\n{}".format(self.pno_correct))
             Ria = np.zeros((self.no_occ, self.no_vir))
-            self.tia, self.t_ijab = local.increment(Ria, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.F_occ)
+            #self.tia, self.t_ijab = local.increment(Ria, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.F_occ)
+            new_tia, new_t_ijab = local.increment(Ria, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.F_occ)
+            print("The local filtered T2 matches original T2: {}".format(np.allclose(self.t_ijab, new_t_ijab)))
             #self.t_ijab = local.increment(Ria, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.F_occ)
         print("MP2 energy here: {}".format(self.corr_energy(self.t_ia, self.t_ijab))) 
 
@@ -399,8 +403,9 @@ class HelperCCEnergy(object):
         E_corr -= contract('ijba,ijab->', self.MO[:no_occ, :no_occ, no_occ:, no_occ:], tmp_tau)
         doubles_val = E_corr - singles_val
         
-        print("Singles contribution: {}".format(singles_val))
-        print("Doubles contribution: {}".format(doubles_val))
+        # Looking at singles and doubles contri
+        #print("Singles contribution: {}".format(singles_val))
+        #print("Doubles contribution: {}".format(doubles_val))
         return E_corr
 
     def do_CC(self, local=None, e_conv=1e-8, r_conv=1e-7, maxiter=40, max_diis=8, start_diis=0):

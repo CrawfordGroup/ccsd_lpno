@@ -82,9 +82,12 @@ class HelperLocal(object):
         avg = 0.0
         sq_avg = 0.0
         for ij in range(self.no_occ * self.no_occ):
-            survivors = occ_nos[ij] > pno_cut
-            #if ij == 0:
-            #    print("Survivors[0]:\n{}".format(survivors))
+            if (occ_nos[ij] < 0).any():
+                print("Warning! An occupation number is negative. Using absolute \
+                        values, please check if your input is correct.")
+            survivors = np.absolute(occ_nos[ij]) > pno_cut
+            if ij == 0:
+                print("Survivors[0]:\n{}".format(survivors))
             for a in range(self.no_vir):
                 if survivors[a] == True:
                     self.s_pairs[ij] += 1
