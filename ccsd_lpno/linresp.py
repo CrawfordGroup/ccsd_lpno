@@ -82,6 +82,9 @@ def do_linresp(wfn, omega_nm, mol, return_en=False, method='polar', gauge='lengt
 
         new_x_y = np.reshape(hresp['YY'].x_ijab, (hcc.no_occ*hcc.no_occ, hcc.no_vir, hcc.no_vir))
         
+        '''
+        # This code block saves amplitudes in order to look at sparsity of the different methods
+
         if localize:
             NO_x_y = np.zeros_like(new_x_y)
             NO_t = np.zeros_like(new_x_y)
@@ -106,7 +109,7 @@ def do_linresp(wfn, omega_nm, mol, return_en=False, method='polar', gauge='lengt
         else:
             np.save('X2_can_y', new_x_y)
             np.save('T2_can', np.reshape(hcc.t_ijab, (hcc.no_occ*hcc.no_occ, hcc.no_vir, hcc.no_vir)))
-
+        '''
 
         if return_en == True:
             return ccsd_e, isotropic_polar

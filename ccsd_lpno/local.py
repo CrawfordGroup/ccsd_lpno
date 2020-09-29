@@ -63,7 +63,7 @@ class HelperLocal(object):
         no_occ_pairs = np.sum(str_pair_list)
         print("No. of strong pairs: {}".format(no_occ_pairs))
         # Diagonalize pair densities to get PNOs (Q) and occ_nos
-        occ_nos = np.zeros((self.no_occ * self.no_occ, self.no_vir))
+        self.occ_nos = np.zeros((self.no_occ * self.no_occ, self.no_vir))
         self.Q = np.zeros((self.no_occ * self.no_occ, self.no_vir, self.no_vir))
         #print("Average density: {}".format(D[0]))
         #print("numpy version: {}". format(np.__version__))
@@ -71,7 +71,7 @@ class HelperLocal(object):
             i = ij // self.no_occ
             j = ij % self.no_occ
             if str_pair_list[i,j] == True:
-                occ_nos[ij], self.Q[ij] = np.linalg.eigh(D[ij])
+                self.occ_nos[ij], self.Q[ij] = np.linalg.eigh(D[ij])
 
         #Q_full = np.load('Q_full.npy')
         #print("The two Qs are the same: {}".format(np.allclose(Q_full, Q)))
@@ -82,10 +82,10 @@ class HelperLocal(object):
         avg = 0.0
         sq_avg = 0.0
         for ij in range(self.no_occ * self.no_occ):
-            if (occ_nos[ij] < 0).any():
+            if (self.occ_nos[ij] < 0).any():
                 print("Warning! An occupation number is negative. Using absolute \
                         values, please check if your input is correct.")
-            survivors = np.absolute(occ_nos[ij]) > pno_cut
+            survivors = np.absolute(self.occ_nos[ij]) > pno_cut
             if ij == 0:
                 print("Survivors[0]:\n{}".format(survivors))
             for a in range(self.no_vir):
@@ -96,14 +96,14 @@ class HelperLocal(object):
             rm_pairs = self.no_vir - int(self.s_pairs[ij])
             Q_list.append(self.Q[ij, :, rm_pairs:])
             #if ij == 5:
-            #    print("Here's occ nums and Q: {}\n{}".format(occ_nos[ij], Q[ij]))
-            #    print("Here's occ nums and Q: {}\n{}".format(occ_nos[ij], Q[ij, :, rm_pairs:]))
+            #    print("Here's occ nums and Q: {}\n{}".format(self.occ_nos[ij], Q[ij]))
+            #    print("Here's occ nums and Q: {}\n{}".format(self.occ_nos[ij], Q[ij, :, rm_pairs:]))
         
         print("Tcut_PNO : {}".format(pno_cut))
         print("Total no. of PNOs: {}".format(avg))
         print("T2 ratio: {}".format(sq_avg/(self.no_occ * self.no_occ * self.no_vir * self.no_vir)))
         avg = avg/(self.no_occ * self.no_occ)
-        print('Occupation numbers [0]:\n {}'.format(occ_nos[0]))
+        print('Occupation numbers [0]:\n {}'.format(self.occ_nos[0]))
         print("Numbers of surviving PNOs:\n{}".format(self.s_pairs))
         print('Average number of PNOs:\n{}'.format(avg))
 
@@ -245,6 +245,7 @@ class HelperLocal(object):
             #if rm_pairs == 0:
             #    continue
             Q_compute = self.Q_list[ij]
+            print("Shape of Q_list[{}]: {}".format(ij, Q_compute.shape))
             trans_MO = contract('Aa,ab,bB->AB', Q_compute.T, new_MO[ij], Q_compute)
             trans_t = contract('Aa,ab,bB->AB', Q_compute.T, new_t[ij], Q_compute)
             trans_MO_full = contract('Aa,ab,bB->AB', self.Q[ij].T, new_MO[ij], self.Q[ij])
@@ -276,7 +277,7 @@ class HelperLocal(object):
             #print("Norm list [{}]: {}".format(ij, np.linalg.norm(Q_combined, axis=0)))
             Q_ortho, trash = np.linalg.qr(Q_combined)
             #print("Norm list [{}]: {}".format(ij, np.linalg.norm(Q_ortho, axis=0)))
-            print("Shape of Q_ortho[{}]: {}".format(ij, Q_ortho.shape))
+            #print("Shape of Q_ortho[{}]: {}".format(ij, Q_ortho.shape))
             Q_list.append(Q_ortho)
             avg += Q_ortho.shape[1]
             sq_avg += Q_ortho.shape[1] * Q_ortho.shape[1]

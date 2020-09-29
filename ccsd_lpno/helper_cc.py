@@ -65,8 +65,8 @@ class HelperCCEnergy(object):
         # Get localized occupied orbitals
         # Make MO integrals
         # Build Fock matrix
-        if local:
-            local_occ = True
+        if local is None:
+            local_occ = False
 
         if local_occ:
             # Localizing occupied orbitals using Boys localization procedure
@@ -159,9 +159,9 @@ class HelperCCEnergy(object):
                 Hbar_vv += contract('mnfa,mnef->ae', self.t_ijab, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
                 Hbar_aa = Hbar_vv.diagonal().copy()
                 denom_ia = Hbar_ii.reshape(-1,1) - Hbar_aa
-                denom_ia += omega
+                #denom_ia += omega
                 denom_ijab = Hbar_ii.reshape(-1, 1, 1, 1) + Hbar_ii.reshape(-1, 1, 1) - Hbar_aa.reshape(-1, 1) - Hbar_aa
-                denom_ijab += omega
+                #denom_ijab += omega
                 self.denom_tuple = (denom_ia, denom_ijab)
 
                 # Prepare the perturbation
@@ -185,9 +185,9 @@ class HelperCCEnergy(object):
             self.pno_correct = local.PNO_correction(self.t_ijab, self.MO)
             print("PNO correction:\n{}".format(self.pno_correct))
             Ria = np.zeros((self.no_occ, self.no_vir))
-            #self.tia, self.t_ijab = local.increment(Ria, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.F_occ)
-            new_tia, new_t_ijab = local.increment(Ria, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.F_occ)
-            print("The local filtered T2 matches original T2: {}".format(np.allclose(self.t_ijab, new_t_ijab)))
+            self.tia, self.t_ijab = local.increment(Ria, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.F_occ)
+            #new_tia, new_t_ijab = local.increment(Ria, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.F_occ)
+            #print("The local filtered T2 matches original T2: {}".format(np.allclose(self.t_ijab, new_t_ijab)))
             #self.t_ijab = local.increment(Ria, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.F_occ)
         print("MP2 energy here: {}".format(self.corr_energy(self.t_ia, self.t_ijab))) 
 
