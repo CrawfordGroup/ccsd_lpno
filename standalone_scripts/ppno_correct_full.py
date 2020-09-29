@@ -1,6 +1,13 @@
+'''
+This script sets up a benchmark calculation for the
+computation of the PNO++ MP2-level property correction
+by computing the full-space canonical MO response value
+using MP2-level T, lambda, X and Y amplitudes
+'''
 import ccsd_lpno
 import psi4
 import numpy as np
+import argparse
 from opt_einsum import contract
 
 def full_ext_linresp(t_ijab, A_list, B_list, denom):
@@ -12,7 +19,7 @@ def full_ext_linresp(t_ijab, A_list, B_list, denom):
     #Using MP2 T2s, create guess X's, Y's, L's
     t_ia = np.zeros((no_occ, no_vir))
     l_ia = np.zeros((no_occ, no_vir))
-    l_ijab = t_ijab
+    l_ijab = 4.0 * t_ijab.copy() - 2.0 * t_ijab.swapaxes(2,3).copy()
     
     dirn_list = ['X','Y','Z']
     total = 0.0
@@ -23,7 +30,7 @@ def full_ext_linresp(t_ijab, A_list, B_list, denom):
         x_ia += 2.0 * contract('miea,me->ai', t_ijab, A[:no_occ, no_occ:])
         x_ia -= contract('imea,me->ai', t_ijab, A[:no_occ, no_occ:])
         x_ia = x_ia.swapaxes(0,1) / D_ia
-        y_ia = x_ia.copy()
+        y_ia = 2.0 * x_ia.copy()
 
         Avvoo = contract('ijeb,ae->abij', t_ijab, A[no_occ:, no_occ:])
         Avvoo -= contract('mjab,mi->abij', t_ijab, A[:no_occ, :no_occ])
@@ -32,7 +39,7 @@ def full_ext_linresp(t_ijab, A_list, B_list, denom):
         # X_ijab = Abar_ijab / Hbar_ii + Hbar_jj - Hbar_aa _ Hbar_bb
         x_ijab = Abar.copy()
         x_ijab /= D_ijab
-        y_ijab = x_ijab.copy()
+        y_ijab = 4.0 * x_ijab.copy() - 2.0 * x_ijab.swapaxes(2,3).copy()
 
 
         for dirn1 in dirn_list:
@@ -46,13 +53,15 @@ def full_ext_linresp(t_ijab, A_list, B_list, denom):
             # <0| L2 B_bar X1 |0>
             temp = contract('ijeb,me->mbij', t_ijab, B[:no_occ, no_occ:])
             temp1 = -1.0 * contract('miab,me->abei', t_ijab, B[:no_occ, no_occ:])
-            linresp -= 0.5 * contract('kbij,ka,ijab->', temp, x_ia, l_ijab)
             linresp += contract('bcaj,ia,ijbc->', temp1, x_ia, l_ijab)
+            linresp -= 0.5 * contract('kbij,ka,ijab->', temp, x_ia, l_ijab)
             linresp -= 0.5 * contract('kaji,kb,ijab->', temp, x_ia, l_ijab)
             # <0| Y1 B_bar |0>
-            temp2 = 2.0 * contract('miea,me->ai', t_ijab, B[:no_occ, no_occ:])
+            temp2 = B[no_occ:, :no_occ].copy()
+            temp2 += 2.0 * contract('miea,me->ai', t_ijab, B[:no_occ, no_occ:])
             temp2 -= contract('imea,me->ai', t_ijab, B[:no_occ, no_occ:])
             linresp += contract('ai,ia->', temp2, y_ia)
+            #print("term {} {}: {}".format(dirn, dirn1, linresp))
             # <0| L1 B_bar X2 |0>
             linresp += 2.0 * contract('jb,ijab,ia->', B[:no_occ, no_occ:], x_ijab, l_ia)
             linresp -= contract('jb,ijba,ia->', B[:no_occ, no_occ:], x_ijab, l_ia)
@@ -79,12 +88,17 @@ def full_ext_linresp(t_ijab, A_list, B_list, denom):
     return total    
 
 if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--m", default='h2_2', type=str, help="Molecule from mollib")
+    args = parser.parse_args()
+
     psi4.core.clean()
 
     psi4.core.set_output_file('correct_psi4.dat', False)
     np.set_printoptions(precision=12, linewidth=200, suppress=True)
 
-    geom = ccsd_lpno.mollib.mollib["h2_7"]
+    geom = ccsd_lpno.mollib.mollib["{}".format(args.m)]
     mol = psi4.geometry(geom)
 
     psi4.set_options({'basis': '6-31g', 'scf_type': 'pk',
@@ -111,8 +125,9 @@ if __name__ == "__main__":
     i = 0
     for dirn in dirn_list:
         A_list[dirn] = np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(dipole_array[i]))
-        B_list[dirn] = np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(angular_momentum[i]))
+        B_list[dirn] = -0.5 * np.einsum('uj,vi,uv', hcc.C_arr, hcc.C_arr, np.asarray(angular_momentum[i]))
         i += 1
-
+    
+    #print("Denom tuple: {}".format(hcc.denom_tuple))
     lin_resp_value = full_ext_linresp(hcc.t_ijab, A_list, B_list, hcc.denom_tuple)
     print("The trace: {}".format(lin_resp_value))

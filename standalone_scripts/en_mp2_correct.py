@@ -1,9 +1,8 @@
 '''
-Computing the CCSD-LR dipole polarizability  using an RHF reference
-References used:
-    - http://github.com/CrawfordGroup/ProgrammingProjects
-    - Stanton:1991:4334
-    - https://github.com/psi4/psi4numpy
+This script uses the CCSD-LPNO response code
+to compute the MP2-level energy correction
+to the PNO/PNO++ method by including the
+external (truncated) space
 '''
 
 import numpy as np
@@ -11,17 +10,17 @@ import psi4
 import ccsd_lpno
 import argparse
 import time
+import json
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--j", default='output.json', type=str, help="Output json filename") 
-parser.add_argument("--m", default='h2o2', type=str, help="Mollib molecule name") 
+parser.add_argument("--m", default='h2_2', type=str, help="Molecule from mollib")
 args = parser.parse_args()
 
-#cutoffs = [1e-10, 5e-9, 5e-8, 5e-7, 5e-6, 5e-5]
-cutoffs =[0]
+cutoffs = [1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 5e-9, 5e-8, 5e-7, 5e-6, 5e-5, 5e-4]
+#cutoffs =[0, 1e-6]
 
-optrot_lg_list = {}
-optrot_mvg_list = {}
+mp2_en_list = {}
 
 for cut in cutoffs:
     psi4.core.clean()
@@ -35,7 +34,7 @@ for cut in cutoffs:
     geom = ccsd_lpno.mollib.mollib["{}".format(args.m)]
     mol = psi4.geometry(geom)
 
-    psi4.set_options({'basis': '6-31g', 'scf_type': 'pk',
+    psi4.set_options({'basis': 'aug-cc-pvdz', 'scf_type': 'pk',
                       'freeze_core': 'false', 'e_convergence': 1e-12,
                       'd_convergence': 1e-12, 'save_jk': 'true'})
 
@@ -57,25 +56,18 @@ for cut in cutoffs:
 
     no_vir = wfn.nmo() - wfn.doccpi()[0] - wfn.frzcpi()[0]
     # Set for LPNO
-    localize=True
-    #local=False
+    #localize=True
+    local=True
     pert='mu'
     pno_cut = cut
 
-    # Do the linear response calculation
-    optrot_lg = ccsd_lpno.do_linresp(wfn, omega_nm, mol, method='optrot', gauge='length', localize=localize, pert=pert, pno_cut=pno_cut) 
-    t0 = time.time()
-    #optrot_mvg = ccsd_lpno.do_linresp(wfn, omega_nm, mol, method='optrot', gauge='velocity', localize=localize, pert=pert, pno_cut=pno_cut, e_cut=1e-4) 
-    t1 = time.time()
-    print("Total time: {}".format(t1 - t0))
-    optrot_lg_list['{}'.format(cut)] = optrot_lg
+    local = ccsd_lpno.HelperLocal(wfn.doccpi()[0], no_vir)
+    hcc = ccsd_lpno.HelperCCEnergy(wfn, local=local, pert=pert, pno_cut=pno_cut)
+
+    mp2_en_list['{}'.format(cut)] = hcc.pno_correct
     #optrot_mvg_list['{}'.format(cut)] = optrot_mvg
 
-#optrot_data = {}
-#optrot_data['LG'] = optrot_lg_list
-#optrot_data['MVG'] = optrot_mvg_list
-#with open("{}".format(args.j), "w") as write_file:
-#    json.dump(optrot_data, write_file, indent=4)
+with open("{}".format(args.j), "w") as write_file:
+    json.dump(mp2_en_list, write_file, indent=4)
 
-print("List of optical rotations (LG, {} nm): {}".format(omega_nm, optrot_lg_list))
-#print("List of optical rotations (MVG, {} nm): {}".format(omega_nm, optrot_mvg_list))
+print("List of MP2 energy corrections: {}".format(mp2_en_list))

@@ -1,9 +1,7 @@
 '''
-Computing the CCSD-LR dipole polarizability  using an RHF reference
-References used:
-    - http://github.com/CrawfordGroup/ProgrammingProjects
-    - Stanton:1991:4334
-    - https://github.com/psi4/psi4numpy
+This script computes the PNO++/PNO/combined density 
+OR/polarizability value depending on input options given below.
+It can be used to iterate over cutoffs for a given molecule.
 '''
 
 import numpy as np
@@ -63,7 +61,8 @@ for cut in cutoffs:
     pno_cut = cut
 
     # Do the linear response calculation
-    optrot_lg = ccsd_lpno.do_linresp(wfn, omega_nm, mol, method='optrot', gauge='length', localize=localize, pert=pert, pno_cut=pno_cut) 
+    optrot_lg = ccsd_lpno.do_linresp(wfn, omega_nm, mol, method='polar', gauge='length', localize=localize, pert=pert, pno_cut=pno_cut)
+    #optrot_lg = ccsd_lpno.do_linresp(wfn, omega_nm, mol, method='polar', gauge='length', localize=localize, pert=pert, pno_cut=pno_cut)
     t0 = time.time()
     #optrot_mvg = ccsd_lpno.do_linresp(wfn, omega_nm, mol, method='optrot', gauge='velocity', localize=localize, pert=pert, pno_cut=pno_cut, e_cut=1e-4) 
     t1 = time.time()
