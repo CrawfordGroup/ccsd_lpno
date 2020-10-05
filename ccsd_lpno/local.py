@@ -128,7 +128,9 @@ class HelperLocal(object):
             denom_ia = denom[0]
             denom_ijab = denom[1]
 
-            for A in A_list.values():
+            dirn = ['X','Y','Z']
+            for i, drn in enumerate(dirn):
+                A = A_list[drn]
                 # Build guess Abar
                 # Abar_ijab = P_ij^ab (t_ij^eb A_ae - t_mj^ab A_mi)
                 Avvoo = contract('ijeb,ae->abij', t_ijab, A[self.no_occ:, self.no_occ:])
@@ -138,11 +140,13 @@ class HelperLocal(object):
 
                 # Build guess X's
                 # X_ijab = Abar_ijab / Hbar_ii + Hbar_jj - Hbar_aa _ Hbar_bb
-                X_guess[i] = Abar.copy()
-                X_guess[i] /= denom_ijab
+                X_guess[drn] = Abar.copy()
+                X_guess[drn] /= denom_ijab
 
-                D += self.form_density(X_guess[i])
-                i += 1
+                if pert == 'mu_pdt' or 'l_pdt':
+                    D += np.multiply(self.form_density(X_guess[drn]), A_list_2[drn][self.no_occ:, self.no_occ:])
+                else:
+                    D += self.form_density(X_guess[drn])
             #print("X_guess [0]: {}".format(X_guess[0]))
             D /= 3.0
             #print('Average density: {}'.format(D))
@@ -157,7 +161,8 @@ class HelperLocal(object):
             if pert == 'mu+l+unpert':
                 i = 0
                 D_l = np.zeros((self.no_occ * self.no_occ, self.no_vir, self.no_vir))
-                for A in A_list_2.values():
+                for i in dirn:
+                    A = A_list_2[i]
                     # Build guess Abar
                     # Abar_ijab = P_ij^ab (t_ij^eb A_ae - t_mj^ab A_mi)
                     Avvoo = contract('ijeb,ae->abij', t_ijab, A[self.no_occ:, self.no_occ:])
@@ -179,6 +184,8 @@ class HelperLocal(object):
                 # requires the building of the guess Abar matrix and guess X's
                 D_unpert = self.form_density(t_ijab)
                 self.Q_list = self.combine_3_PNO_lists(pno_cut, D, D_l, D_unpert, str_pair_list=str_pair_list)
+            if pert == 'mu_pdt' or pert == 'l_pdt':
+                self.Q_list = self.build_PNO_lists(pno_cut, D, str_pair_list=str_pair_list)
         else:
             print('Pert switch off. Initializing ground PNOs')
             D = self.form_density(t_ijab)

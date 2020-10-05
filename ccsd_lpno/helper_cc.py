@@ -159,9 +159,9 @@ class HelperCCEnergy(object):
                 Hbar_vv += contract('mnfa,mnef->ae', self.t_ijab, self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:])
                 Hbar_aa = Hbar_vv.diagonal().copy()
                 denom_ia = Hbar_ii.reshape(-1,1) - Hbar_aa
-                #denom_ia += omega
+                denom_ia += omega
                 denom_ijab = Hbar_ii.reshape(-1, 1, 1, 1) + Hbar_ii.reshape(-1, 1, 1) - Hbar_aa.reshape(-1, 1) - Hbar_aa
-                #denom_ijab += omega
+                denom_ijab += omega
                 self.denom_tuple = (denom_ia, denom_ijab)
 
                 # Prepare the perturbation
@@ -172,13 +172,43 @@ class HelperCCEnergy(object):
                     dirn = ['X','Y','Z']
                     for i in range(3):
                         A_list[dirn[i]] = np.einsum('uj,vi,uv', self.C_arr, self.C_arr, np.asarray(dipole_array[i]))
+                    local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, pert=pert, A_list=A_list, str_pair_list=str_pair_list, denom=self.denom_tuple)            
                 if pert == 'l' or pert == 'l+unpert':
                     # Here, perturbation is angular momentum
                     angular_momentum = self.mints.ao_angular_momentum()
                     dirn = ['X','Y','Z']
                     for i in range(3):
                         A_list[dirn[i]] = np.einsum('uj,vi,uv', self.C_arr, self.C_arr, np.asarray(angular_momentum[i]))
-                local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, pert=pert, A_list=A_list, str_pair_list=str_pair_list, denom=self.denom_tuple)            
+                    local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, pert=pert, A_list=A_list, str_pair_list=str_pair_list, denom=self.denom_tuple)            
+                if pert == 'mu+l+unpert': 
+                    ## Here, both perturbations are passed in to create the density
+                    dipole_array = self.mints.ao_dipole()
+                    dirn = ['X','Y','Z']
+                    A_list_2 = {}
+                    for i in range(3):
+                        A_list[dirn[i]] = np.einsum('uj,vi,uv', self.C_arr, self.C_arr, np.asarray(dipole_array[i]))
+                    angular_momentum = self.mints.ao_angular_momentum()
+                    for i in range(3):
+                        A_list_2[dirn[i]] = np.einsum('uj,vi,uv', self.C_arr, self.C_arr, np.asarray(angular_momentum[i]))
+                    local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, pert=pert, A_list=A_list, A_list_2=A_list_2, str_pair_list=str_pair_list, denom=self.denom_tuple)            
+                if pert == 'mu_pdt':
+                    dipole_array = self.mints.ao_dipole()
+                    angular_momentum = self.mints.ao_angular_momentum()
+                    dirn = ['X','Y','Z']
+                    A_list_2 = {}
+                    for i in range(3):
+                        A_list[dirn[i]] = np.einsum('uj,vi,uv', self.C_arr, self.C_arr, np.asarray(dipole_array[i]))
+                        A_list_2[dirn[i]] = np.einsum('uj,vi,uv', self.C_arr, self.C_arr, np.asarray(angular_momentum[i]))
+                    local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, pert=pert, A_list=A_list, A_list_2=A_list_2, str_pair_list=str_pair_list, denom=self.denom_tuple)            
+                if pert == 'l_pdt':
+                    dipole_array = self.mints.ao_dipole()
+                    angular_momentum = self.mints.ao_angular_momentum()
+                    dirn = ['X','Y','Z']
+                    A_list_2 = {}
+                    for i in range(3):
+                        A_list[dirn[i]] = np.einsum('uj,vi,uv', self.C_arr, self.C_arr, np.asarray(angular_momentum[i]))
+                        A_list_2[dirn[i]] = np.einsum('uj,vi,uv', self.C_arr, self.C_arr, np.asarray(dipole_array[i]))
+                    local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, pert=pert, A_list=A_list, A_list_2=A_list_2, str_pair_list=str_pair_list, denom=self.denom_tuple)            
             else:
                 local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, str_pair_list=str_pair_list)            
 
