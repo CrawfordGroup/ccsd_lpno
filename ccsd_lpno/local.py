@@ -143,8 +143,29 @@ class HelperLocal(object):
                 X_guess[drn] = Abar.copy()
                 X_guess[drn] /= denom_ijab
 
-                if pert == 'mu_pdt' or 'l_pdt':
-                    D += np.multiply(self.form_density(X_guess[drn]), A_list_2[drn][self.no_occ:, self.no_occ:])
+                # A product density, scaled by the largest element in the density
+                # so that the occupation numbers are in a reasonably large range
+                if pert == 'pdt':
+                    X_guess2 = {}
+                    A2 = A_list_2
+                    # Build guess Abar
+                    # Abar_ijab = P_ij^ab (t_ij^eb A_ae - t_mj^ab A_mi)
+                    Avvoo2 = contract('ijeb,ae->abij', t_ijab, A2[self.no_occ:, self.no_occ:])
+                    Avvoo2 -= contract('mjab,mi->abij', t_ijab, A2[:self.no_occ, :self.no_occ])
+                    Abar2 = Avvoo2.swapaxes(0,2).swapaxes(1,3)
+                    Abar2 += Abar2.swapaxes(0,1).swapaxes(2,3)
+
+                    # Build guess X's
+                    # X_ijab = Abar_ijab / Hbar_ii + Hbar_jj - Hbar_aa _ Hbar_bb
+                    X_guess2[drn] = Abar2.copy()
+                    X_guess2[drn] /= denom_ijab
+                    pdt_density = np.multiply(self.form_density(X_guess[drn]), self.form_density(X_guess2[drn]))
+                    previous_norm = np.linalg.norm(pdt_density)
+                    print("Previous norm: {}".format(previous_norm))
+                    pdt_density /= np.abs(np.max(pdt_density))
+                    print("New norm: {}".format(np.linalg.norm(pdt_density)))
+                    D+= pdt_density
+                    print("Has pdt density become larger?", np.greater(np.linalg.norm(pdt_density), previous_norm))
                 else:
                     D += self.form_density(X_guess[drn])
             #print("X_guess [0]: {}".format(X_guess[0]))
@@ -153,9 +174,9 @@ class HelperLocal(object):
             # Identify weak pairs using MP2 pseudoresponse
             # Todo
 
-            if pert == 'mu' or pert == 'l':
+            if pert == 'mu' or pert == 'l' or pert == 'p':
                 self.Q_list = self.build_PNO_lists(pno_cut, D, str_pair_list=str_pair_list)
-            if pert == 'mu+unpert' or pert == 'l+unpert':
+            if pert == 'mu+unpert' or pert == 'l+unpert' or pert == 'p+unpert':
                 D_unpert = self.form_density(t_ijab)
                 self.Q_list = self.combine_PNO_lists(pno_cut, D, D_unpert, str_pair_list=str_pair_list)
             if pert == 'mu+l+unpert':

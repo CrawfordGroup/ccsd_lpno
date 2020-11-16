@@ -180,17 +180,26 @@ class HelperCCEnergy(object):
                     for i in range(3):
                         A_list[dirn[i]] = np.einsum('uj,vi,uv', self.C_arr, self.C_arr, np.asarray(angular_momentum[i]))
                     local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, pert=pert, A_list=A_list, str_pair_list=str_pair_list, denom=self.denom_tuple)            
-                if pert == 'mu+l+unpert': 
+                if pert == 'p' or pert == 'p+unpert':
+                    # Here, perturbation is angular momentum
+                    nabla = self.mints.ao_nabla()
+                    dirn = ['X','Y','Z']
+                    for i in range(3):
+                        A_list[dirn[i]] = np.einsum('uj,vi,uv', self.C_arr, self.C_arr, np.asarray(nabla[i]))
+                    local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, pert=pert, A_list=A_list, str_pair_list=str_pair_list, denom=self.denom_tuple)            
+                if pert == 'mu+l+unpert' or 'pdt': 
                     ## Here, both perturbations are passed in to create the density
                     dipole_array = self.mints.ao_dipole()
+                    angular_momentum = self.mints.ao_angular_momentum()
                     dirn = ['X','Y','Z']
                     A_list_2 = {}
                     for i in range(3):
                         A_list[dirn[i]] = np.einsum('uj,vi,uv', self.C_arr, self.C_arr, np.asarray(dipole_array[i]))
-                    angular_momentum = self.mints.ao_angular_momentum()
-                    for i in range(3):
                         A_list_2[dirn[i]] = np.einsum('uj,vi,uv', self.C_arr, self.C_arr, np.asarray(angular_momentum[i]))
                     local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, pert=pert, A_list=A_list, A_list_2=A_list_2, str_pair_list=str_pair_list, denom=self.denom_tuple)            
+                '''
+                # This section was used for computing the density as pdt of the perturbed density
+                # and the other perturbation operator directly
                 if pert == 'mu_pdt':
                     dipole_array = self.mints.ao_dipole()
                     angular_momentum = self.mints.ao_angular_momentum()
@@ -209,6 +218,7 @@ class HelperCCEnergy(object):
                         A_list[dirn[i]] = np.einsum('uj,vi,uv', self.C_arr, self.C_arr, np.asarray(angular_momentum[i]))
                         A_list_2[dirn[i]] = np.einsum('uj,vi,uv', self.C_arr, self.C_arr, np.asarray(dipole_array[i]))
                     local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, pert=pert, A_list=A_list, A_list_2=A_list_2, str_pair_list=str_pair_list, denom=self.denom_tuple)            
+                '''
             else:
                 local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, str_pair_list=str_pair_list)            
 
