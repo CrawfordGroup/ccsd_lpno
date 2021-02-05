@@ -110,8 +110,9 @@ class HelperCCEnergy(object):
         self.F_occ = self.F[:self.no_occ, :self.no_occ]
         self.F_vir = self.F[self.no_occ:, self.no_occ:]
 
-        #print("MO basis F_vir:\n{}\n".format(self.F_vir))
-        print("MO basis F_occ:\n{}\n".format(self.F_occ))
+        #print("MO basis ERIs 2<ij|ab> - <ij|ba>:\n{}\n".format(2.0*self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:] - self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:].swapaxes(2,3)))
+        #print("MO basis F_vir:\n{}\n".format(np.diag(self.F_vir)))
+        #print("MO basis F_occ:\n{}\n".format(self.F_occ))
 
         # Once localized, the occupied orbital energies are no longer
         # equivalent to the diagonal of the Fock matrix
@@ -125,9 +126,11 @@ class HelperCCEnergy(object):
         # note that occ.transpose(col) - vir(row) gives occ x vir matrix of differences
         self.d_ia = self.eps_occ.reshape(-1, 1) - self.eps_vir
         self.d_ijab = self.eps_occ.reshape(-1, 1, 1, 1) + self.eps_occ.reshape(-1, 1, 1) - self.eps_vir.reshape(-1, 1) - self.eps_vir
+        #print("D2 denom:\n{}\n".format(1.0/self.d_ijab))
         self.t_ijab = self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:].copy()
         # T2s matching!
         self.t_ijab /= self.d_ijab
+        #print("T2s:\n{}\n".format(self.t_ijab))
         mp2_e = 2.0 * contract('ijab,ijab->', self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.t_ijab)
         mp2_e -= contract('ijba,ijab->', self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:], self.t_ijab)
         print("MP2 energy(without truncation): {}".format(mp2_e))
@@ -172,6 +175,7 @@ class HelperCCEnergy(object):
                     dirn = ['X','Y','Z']
                     for i in range(3):
                         A_list[dirn[i]] = np.einsum('uj,vi,uv', self.C_arr, self.C_arr, np.asarray(dipole_array[i]))
+                        test = A_list[dirn[i]]
                     local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, pert=pert, A_list=A_list, str_pair_list=str_pair_list, denom=self.denom_tuple)            
                 if pert == 'l' or pert == 'l+unpert':
                     # Here, perturbation is angular momentum
@@ -187,7 +191,7 @@ class HelperCCEnergy(object):
                     for i in range(3):
                         A_list[dirn[i]] = np.einsum('uj,vi,uv', self.C_arr, self.C_arr, np.asarray(nabla[i]))
                     local.init_PNOs(pno_cut, self.t_ijab, self.F_vir, pert=pert, A_list=A_list, str_pair_list=str_pair_list, denom=self.denom_tuple)            
-                if pert == 'mu+l+unpert' or 'pdt': 
+                if pert == 'mu+l+unpert' or pert == 'pdt': 
                     ## Here, both perturbations are passed in to create the density
                     dipole_array = self.mints.ao_dipole()
                     angular_momentum = self.mints.ao_angular_momentum()

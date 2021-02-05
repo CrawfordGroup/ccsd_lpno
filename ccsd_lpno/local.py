@@ -3,6 +3,7 @@ import numpy as np
 import psi4
 from opt_einsum import contract
 
+np.set_printoptions(threshold=np.inf)
 
 class HelperLocal(object):
     def __init__(self, no_occ, no_vir):
@@ -16,7 +17,8 @@ class HelperLocal(object):
         #print('T matrix [0]:\n{}'.format(T_ij[0]))
         Tt_ij = 2.0 * T_ij.copy() 
         Tt_ij -= T_ij.swapaxes(1, 2)
-        #print("X here: {}".format(T_ij))
+        #for ij in range(self.no_occ*self.no_occ):
+        #    print("Pair {}: {}".format(ij, T_ij[ij]))
         #print("Xt here: {}".format(Tt_ij))
 
         # Form pair densities
@@ -28,7 +30,6 @@ class HelperLocal(object):
             D[ij] *= 2.0 / (1.0 + int(i==j))
             D[ij] += D[ij].T
             D[ij] *= 0.5
-        #print("Density matrix [1,1]: {}".format(D[1]))
         return D
 
     def form_semicanonical(self, Q_list, F_vir):
@@ -43,10 +44,12 @@ class HelperLocal(object):
             tmp1 = Q_list[ij]
             F_pno = contract('pa,ab,bq->pq', tmp1.swapaxes(0, 1), F_vir, tmp1)
             eps_pno, L = np.linalg.eigh(F_pno)
+            #print("Here's eps_pno:\n{}\n".format(eps_pno))
             eps_pno_list.append(eps_pno)
             L_list.append(L)
             #if ij == 0:
             #    print("Here's L: {}".format(L))
+            #print("L[{}]:\n{}\n".format(ij, L))
         return L_list, eps_pno_list
 
     def build_overlaps(self, Q_list):
@@ -65,7 +68,6 @@ class HelperLocal(object):
         # Diagonalize pair densities to get PNOs (Q) and occ_nos
         self.occ_nos = np.zeros((self.no_occ * self.no_occ, self.no_vir))
         self.Q = np.zeros((self.no_occ * self.no_occ, self.no_vir, self.no_vir))
-        #print("Average density: {}".format(D[0]))
         #print("numpy version: {}". format(np.__version__))
         for ij in range(self.no_occ * self.no_occ):
             i = ij // self.no_occ
@@ -103,7 +105,7 @@ class HelperLocal(object):
         print("Total no. of PNOs: {}".format(avg))
         print("T2 ratio: {}".format(sq_avg/(self.no_occ * self.no_occ * self.no_vir * self.no_vir)))
         avg = avg/(self.no_occ * self.no_occ)
-        print('Occupation numbers [0]:\n {}'.format(self.occ_nos[0]))
+        #print('Occupation numbers [1]:\n {}'.format(self.occ_nos[1]))
         print("Numbers of surviving PNOs:\n{}".format(self.s_pairs))
         print('Average number of PNOs:\n{}'.format(avg))
 
@@ -161,13 +163,14 @@ class HelperLocal(object):
                     X_guess2[drn] /= denom_ijab
                     pdt_density = np.multiply(self.form_density(X_guess[drn]), self.form_density(X_guess2[drn]))
                     previous_norm = np.linalg.norm(pdt_density)
-                    print("Previous norm: {}".format(previous_norm))
+                    #print("Previous norm: {}".format(previous_norm))
                     pdt_density /= np.abs(np.max(pdt_density))
-                    print("New norm: {}".format(np.linalg.norm(pdt_density)))
+                    #print("New norm: {}".format(np.linalg.norm(pdt_density)))
                     D+= pdt_density
-                    print("Has pdt density become larger?", np.greater(np.linalg.norm(pdt_density), previous_norm))
+                    #print("Has pdt density become larger?", np.greater(np.linalg.norm(pdt_density), previous_norm))
                 else:
                     D += self.form_density(X_guess[drn])
+                    print("Density {}:\n{}\n".format(drn, D))
             #print("X_guess [0]: {}".format(X_guess[0]))
             D /= 3.0
             #print('Average density: {}'.format(D))
@@ -247,14 +250,16 @@ class HelperLocal(object):
             # Transform RQs using L
             tmp2 = self.L_list[ij]
             R2QL = contract('ca,ab,bd->cd', tmp2.T, R2Q, tmp2)
+            #print("T2 residual before denom:\n{}".format(R2QL))
             # Use vir orb. energies from semicanonical
             tmp3 = self.eps_pno_list[ij]
             d2_QL = np.zeros((tmp3.shape[0], tmp3.shape[0]))
             for a in range(tmp3.shape[0]):
                 for b in range(tmp3.shape[0]):
                     d2_QL[a, b] = F_occ[ij // self.no_occ, ij // self.no_occ ] + F_occ[ij % self.no_occ, ij % self.no_occ] - tmp3[a] - tmp3[b]
-            #print('denom in semi-canonical PNO basis:\n{}\n'.format(d_QL.shape))
+            #print('denom in semi-canonical PNO basis:\n{}\n'.format(d2_QL))
             T2QL = R2QL / d2_QL
+            #print("T2 residual after denom:\n{}".format(T2QL))
             # Back transform to TQs
             T2Q = contract('ca,ab,bd->cd', tmp2, T2QL, tmp2.T)
             # Back transform to Ts
@@ -273,7 +278,7 @@ class HelperLocal(object):
             #if rm_pairs == 0:
             #    continue
             Q_compute = self.Q_list[ij]
-            print("Shape of Q_list[{}]: {}".format(ij, Q_compute.shape))
+            #print("Shape of Q_list[{}]: {}".format(ij, Q_compute.shape))
             trans_MO = contract('Aa,ab,bB->AB', Q_compute.T, new_MO[ij], Q_compute)
             trans_t = contract('Aa,ab,bB->AB', Q_compute.T, new_t[ij], Q_compute)
             trans_MO_full = contract('Aa,ab,bB->AB', self.Q[ij].T, new_MO[ij], self.Q[ij])
