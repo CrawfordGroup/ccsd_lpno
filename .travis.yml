@@ -10,9 +10,6 @@ matrix:
   include:
 
   - env:
-    - PYTHON_VER='3.6'
-
-  - env:
     - PYTHON_VER='3.7'
 
 before_install:
