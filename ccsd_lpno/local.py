@@ -170,7 +170,6 @@ class HelperLocal(object):
                     #print("Has pdt density become larger?", np.greater(np.linalg.norm(pdt_density), previous_norm))
                 else:
                     D += self.form_density(X_guess[drn])
-                    print("Density {}:\n{}\n".format(drn, D))
             #print("X_guess [0]: {}".format(X_guess[0]))
             D /= 3.0
             #print('Average density: {}'.format(D))
@@ -309,7 +308,6 @@ class HelperLocal(object):
             Q_combined = np.hstack((Q_pert[ij], Q_unpert[ij]))
             #print("Norm list [{}]: {}".format(ij, np.linalg.norm(Q_combined, axis=0)))
             Q_ortho, trash = np.linalg.qr(Q_combined)
-            #print("Norm list [{}]: {}".format(ij, np.linalg.norm(Q_ortho, axis=0)))
             #print("Shape of Q_ortho[{}]: {}".format(ij, Q_ortho.shape))
             Q_list.append(Q_ortho)
             avg += Q_ortho.shape[1]
@@ -317,6 +315,9 @@ class HelperLocal(object):
             
         avg = avg / (self.no_occ * self.no_occ)
         t2_ratio = sq_avg /(self.no_occ * self.no_occ * self.no_vir * self.no_vir)
+        print("Survivors:")
+        for qel in Q_list:
+            print(qel.shape[1], end=" ")
         print("Average no. of combined PNOs: {}".format(avg))
         print("T2 ratio: {}".format(t2_ratio))
         return Q_list

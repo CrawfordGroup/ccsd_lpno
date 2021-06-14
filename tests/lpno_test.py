@@ -10,15 +10,15 @@ import numpy as np
 import psi4
 import ccsd_lpno
 
-cutoffs = [1e-10, 1e-5]
+cutoffs = [1e-5]
 #cutoffs =[0]
 
 optrot_lg_list = []
 optrot_mvg_list = []
 
-optrot_compare_list_mvg = [792.5178087357277, -381.8033967803549]
+optrot_compare_list_mvg = [3054.570265682527, -381.8033967803549]
 #optrot_compare_list_lg = [1323.4288250963534, 1035.7555342116455]
-polar_compare_list = [19.213564656072194, 16.347705324113193]
+polar_compare_list = [11.81084831627497, 16.347705324113193]
 
 psi4.core.clean()
 
@@ -31,12 +31,12 @@ np.set_printoptions(precision=12, threshold=np.inf, linewidth=200, suppress=True
 geom = ccsd_lpno.mollib.mollib["h2_4"]
 mol = psi4.geometry(geom)
 
-psi4.set_options({'basis': 'aug-cc-pvdz', 'scf_type': 'pk',
-                  'freeze_core': 'false', 'e_convergence': 1e-12,
-                  'd_convergence': 1e-12, 'save_jk': 'true'})
+psi4.set_options({'basis': 'cc-pvdz', 'scf_type': 'pk',
+                  'freeze_core': 'false', 'e_convergence': 1e-8,
+                  'd_convergence': 1e-8, 'save_jk': 'true'})
 
 # Set for CCSD
-E_conv = 1e-10
+E_conv = 1e-8
 R_conv = 1e-8
 maxiter = 40
 compare_psi4 = False
@@ -45,8 +45,8 @@ compare_psi4 = False
 omega_nm = 589
 
 # Compute RHF energy with psi4
-psi4.set_module_options('SCF', {'E_CONVERGENCE': 1e-12})
-psi4.set_module_options('SCF', {'D_CONVERGENCE': 1e-12})
+psi4.set_module_options('SCF', {'E_CONVERGENCE': 1e-10})
+psi4.set_module_options('SCF', {'D_CONVERGENCE': 1e-10})
 e_scf, wfn = psi4.energy('SCF', return_wfn=True)
 print('SCF energy: {}\n'.format(e_scf))
 print('Nuclear repulsion energy: {}\n'.format(mol.nuclear_repulsion_energy()))
@@ -75,7 +75,7 @@ def test_or_mvg():
         pno_cut = cut
 
         # Do the linear response calculation
-        optrot_mvg = ccsd_lpno.do_linresp(wfn, omega_nm, mol, method='optrot', gauge='velocity', localize=localize, pert=pert, pno_cut=pno_cut) 
+        optrot_mvg = ccsd_lpno.do_linresp(wfn, omega_nm, mol, method='optrot', gauge='velocity', e_conv=E_conv, r_conv=R_conv, localize=localize, pert=pert, pno_cut=pno_cut) 
         print("Optical rotation(MVG) = {}".format(optrot_mvg))
         assert np.allclose(optrot_mvg, optrot_compare_list_mvg[i], atol=1e-4)
         i += 1
@@ -86,7 +86,7 @@ def test_polar():
         pno_cut = cut
 
         # Do the linear response calculation
-        polar = ccsd_lpno.do_linresp(wfn, omega_nm, mol, method='polar', localize=localize, pert=pert, pno_cut=pno_cut)
+        polar = ccsd_lpno.do_linresp(wfn, omega_nm, mol, method='polar', e_conv=E_conv, r_conv=R_conv, localize=localize, pert=pert, pno_cut=pno_cut)
         assert np.allclose(polar, polar_compare_list[i], atol=1e-4)
         print("Polarizability = {}".format(polar))
         i += 1

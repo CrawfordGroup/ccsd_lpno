@@ -45,14 +45,14 @@ def test_ccsd():
     noreorient
     symmetry c1'''
     
-    psi4.set_options({'basis': 'aug-cc-pVDZ', 'scf_type': 'pk',
+    psi4.set_options({'basis': 'cc-pVDZ', 'scf_type': 'pk',
                       'e_convergence': 1e-10,
                       #'freeze_core': 'false', 'e_convergence': 1e-10,
                       'd_convergence': 1e-10, 'save_jk': 'true'})
 
     # Set for CCSD
-    E_conv = 1e-10
-    R_conv = 1e-10
+    E_conv = 1e-8
+    R_conv = 1e-8
     maxiter = 40
     compare_psi4 = False
 
@@ -75,9 +75,9 @@ def test_ccsd():
 
     print('CCSD correlation energy: {}'.format(ccsd_e))
 
-    psi4_ccsd_e = psi4.energy('CCSD', e_convergence=1e-10, r_convergence=1e-10)
+    psi4_ccsd_e = psi4.energy('CCSD', e_convergence=E_conv, r_convergence=R_conv)
     print('Psi4 CCSD energy: {}'.format(psi4_ccsd_e))
-    psi4.compare_values(e_scf+ccsd_e, psi4_ccsd_e, 10, "CCSD Energy")
+    psi4.compare_values(e_scf+ccsd_e, psi4_ccsd_e, 8, "CCSD Energy")
 
 if __name__=="__main__":
     test_ccsd()
