@@ -16,9 +16,9 @@ cutoffs = [1e-10, 1e-5]
 optrot_lg_list = []
 optrot_mvg_list = []
 
-optrot_compare_list_mvg = [1131.5033042025466, 519.4612544828578]
-optrot_compare_list_lg = [1323.4288250963534, 1035.7555342116455]
-polar_compare_list = [19.306154512911203, 18.834936748542642]
+optrot_compare_list_mvg = [2494.13063886734, -630.5177407599258]
+optrot_compare_list_lg = [1219.6427327687582, -390.9304200024749]
+polar_compare_list = [12.431873564968592, 12.403619455848414]
 
 psi4.core.clean()
 
@@ -31,12 +31,12 @@ np.set_printoptions(precision=12, threshold=np.inf, linewidth=200, suppress=True
 geom = ccsd_lpno.mollib.mollib["h2_4"]
 mol = psi4.geometry(geom)
 
-psi4.set_options({'basis': 'aug-cc-pvdz', 'scf_type': 'pk',
-                  'freeze_core': 'false', 'e_convergence': 1e-12,
-                  'd_convergence': 1e-12, 'save_jk': 'true'})
+psi4.set_options({'basis': 'cc-pvdz', 'scf_type': 'pk',
+                  'freeze_core': 'false', 'e_convergence': 1e-10,
+                  'd_convergence': 1e-10, 'save_jk': 'true'})
 
 # Set for CCSD
-E_conv = 1e-10
+E_conv = 1e-8
 R_conv = 1e-8
 maxiter = 40
 compare_psi4 = False
@@ -45,8 +45,8 @@ compare_psi4 = False
 omega_nm = 589
 
 # Compute RHF energy with psi4
-psi4.set_module_options('SCF', {'E_CONVERGENCE': 1e-12})
-psi4.set_module_options('SCF', {'D_CONVERGENCE': 1e-12})
+psi4.set_module_options('SCF', {'E_CONVERGENCE': 1e-10})
+psi4.set_module_options('SCF', {'D_CONVERGENCE': 1e-10})
 e_scf, wfn = psi4.energy('SCF', return_wfn=True)
 print('SCF energy: {}\n'.format(e_scf))
 print('Nuclear repulsion energy: {}\n'.format(mol.nuclear_repulsion_energy()))

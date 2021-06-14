@@ -29,13 +29,13 @@ def test_polar():
     symmetry c1
     """)
 
-    psi4.set_options({'basis': 'sto-3g', 'scf_type': 'pk',
+    psi4.set_options({'basis': 'cc-pVDZ', 'scf_type': 'pk',
                       'freeze_core': 'false', 'e_convergence': 1e-10,
                       'd_convergence': 1e-10, 'save_jk': 'true'})
 
     # Set for CCSD
-    E_conv = 1e-8
-    R_conv = 1e-7
+    E_conv = 1e-10
+    R_conv = 1e-10
     maxiter = 40
     compare_psi4 = False
 
@@ -56,10 +56,9 @@ def test_polar():
     print('Nuclear repulsion energy: {}\n'.format(mol.nuclear_repulsion_energy()))
 
     # Create Helper_CCenergy object
-    polarizability = ccsd_lpno.do_linresp(wfn, omega_nm, mol, method='polar', localize=local, pno_cut=pno_cut) 
+    polarizability = ccsd_lpno.do_linresp(wfn, omega_nm, mol, method='polar', e_conv=E_conv, r_conv=R_conv, localize=local, pno_cut=pno_cut) 
 
     # Comaprison with Psi4
-    psi4.set_options({'d_convergence': 1e-10})
     psi4.set_options({'e_convergence': 1e-10})
     psi4.set_options({'r_convergence': 1e-10})
     psi4.set_options({'omega': [589, 'nm']})

@@ -27,13 +27,13 @@ def test_optrot():
     symmetry c1        
     """)
 
-    psi4.set_options({'basis': 'sto-3g', 'scf_type': 'pk',
+    psi4.set_options({'basis': 'cc-pVDZ', 'scf_type': 'pk',
                       'freeze_core': 'false', 'e_convergence': 1e-10,
                       'd_convergence': 1e-10, 'save_jk': 'true'})
 
     # Set for CCSD
-    E_conv = 1e-8
-    R_conv = 1e-7
+    E_conv = 1e-10
+    R_conv = 1e-10
     maxiter = 40
     compare_psi4 = False
 
@@ -54,18 +54,17 @@ def test_optrot():
     print('Nuclear repulsion energy: {}\n'.format(mol.nuclear_repulsion_energy()))
 
     # Create Helper_CCenergy object
-    optrot_lg = ccsd_lpno.do_linresp(wfn, omega_nm, mol, method='optrot', gauge='length', localize=local, pno_cut=pno_cut) 
-    optrot_mvg = ccsd_lpno.do_linresp(wfn, omega_nm, mol, method='optrot', gauge='velocity', localize=local, pno_cut=pno_cut) 
+    optrot_lg = ccsd_lpno.do_linresp(wfn, omega_nm, mol, method='optrot', gauge='length', e_conv=E_conv, r_conv=R_conv, localize=local, pno_cut=pno_cut) 
+    optrot_mvg = ccsd_lpno.do_linresp(wfn, omega_nm, mol, method='optrot', gauge='velocity', e_conv=E_conv, r_conv=R_conv, localize=local, pno_cut=pno_cut) 
 
     # Comaprison with Psi4
-    psi4.set_options({'d_convergence': 1e-10})
     psi4.set_options({'e_convergence': 1e-10})
     psi4.set_options({'r_convergence': 1e-10})
     psi4.set_options({'omega': [589, 'nm'],
                       'gauge': 'both'})  
-    psi4.properties('ccsd', properties=['rotation'])
+    psi4.properties('ccsd', properties=['rotation'], ref_wfn=wfn)
     psi4.compare_values(optrot_lg, psi4.core.variable("CCSD SPECIFIC ROTATION (LEN) @ 589NM"), \
-     5, "CCSD SPECIFIC ROTATION (LENGTH GAUGE) 589 nm") #TEST
+     4, "CCSD SPECIFIC ROTATION (LENGTH GAUGE) 589 nm") #TEST
     psi4.compare_values(optrot_mvg, psi4.core.variable("CCSD SPECIFIC ROTATION (MVG) @ 589NM"), \
-     5, "CCSD SPECIFIC ROTATION (MODIFIED VELOCITY GAUGE) 589 nm") #TEST
+     4, "CCSD SPECIFIC ROTATION (MODIFIED VELOCITY GAUGE) 589 nm") #TEST
 
