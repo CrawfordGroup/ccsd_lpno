@@ -31,8 +31,6 @@ if args.load_t2 is None:
     scf_e, scf_wfn  = psi4.energy('scf', return_wfn=True)
     hcc_mo = ccsd_lpno.HelperCCEnergy(scf_wfn, local=None, pert=None) 
     ccsd_e = hcc_mo.do_CC()
-    contrib_mo = 2.0 * contract('ia,ia->', self.F[:no_occ, no_occ:], t_ia)
-        tmp_tau = self.make_tau(t_ia, t_ijab)
     contrib_mo = 2.0 * contract('ijab,ijab->ij', hcc_mo.MO[:hcc_mo.no_occ, :hcc_mo.no_occ, hcc_mo.no_occ:, hcc_mo.no_occ:], hcc_mo.t_ijab)
     contrib_mo -= contract('ijba,ijab->ij', hcc_mo.MO[:hcc_mo.no_occ, :hcc_mo.no_occ, hcc_mo.no_occ:, hcc_mo.no_occ:], hcc_mo.t_ijab)
     print("MO contributions:\n{}".format(contrib_mo))
@@ -51,6 +49,7 @@ if args.load_t2 is None:
             Q_compute_pno = local_pno.Q_list[ij]
             print(local_pno.Q_list[ij].shape)
             MO_pno[i][j] = contract('Aa,ab,bB->AB', Q_compute_pno.T, MO_pno[i][j], Q_compute_pno)
+            hcc_pno.t_ijab[i][j] = contract('Aa,ab,bB->AB', Q_compute_pno.T, hcc_pno.t_ijab[i][j], Q_compute_pno)
     contrib_pno = 2.0 * contract('ijab,ijab->ij', MO_pno, hcc_pno.t_ijab)
     contrib_pno -= contract('ijba,ijab->ij', MO_pno, hcc_pno.t_ijab)
     print("PNO contributions:\n{}".format(contrib_mo))
