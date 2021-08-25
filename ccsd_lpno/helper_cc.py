@@ -111,7 +111,7 @@ class HelperCCEnergy(object):
         self.F_vir = self.F[self.no_occ:, self.no_occ:]
 
         #print("MO basis ERIs 2<ij|ab> - <ij|ba>:\n{}\n".format(2.0*self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:] - self.MO[:self.no_occ, :self.no_occ, self.no_occ:, self.no_occ:].swapaxes(2,3)))
-        #print("MO basis F_vir:\n{}\n".format(np.diag(self.F_vir)))
+        #print("MO basis F:\n{}\n".format(self.F))
         #print("MO basis F_occ:\n{}\n".format(self.F_occ))
 
         # Once localized, the occupied orbital energies are no longer

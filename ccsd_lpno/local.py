@@ -50,6 +50,10 @@ class HelperLocal(object):
             #if ij == 0:
             #    print("Here's L: {}".format(L))
             #print("L[{}]:\n{}\n".format(ij, L))
+        with open("L.txt", "w") as outfile:
+            outfile.write(str(L_list))
+        with open("eps_pno.txt", "w") as outfile:
+            outfile.write(str(eps_pno_list))
         return L_list, eps_pno_list
 
     def build_overlaps(self, Q_list):
@@ -100,6 +104,8 @@ class HelperLocal(object):
             #if ij == 5:
             #    print("Here's occ nums and Q: {}\n{}".format(self.occ_nos[ij], Q[ij]))
             #    print("Here's occ nums and Q: {}\n{}".format(self.occ_nos[ij], Q[ij, :, rm_pairs:]))
+        with open("Q.txt", "w") as outfile:
+            outfile.write(str(Q_list))
         
         print("Tcut_PNO : {}".format(pno_cut))
         print("Total no. of PNOs: {}".format(avg))
